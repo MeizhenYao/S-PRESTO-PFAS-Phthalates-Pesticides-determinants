@@ -111,15 +111,24 @@ phtha_log$age_at_recruitment_cat <- factor(phtha_log$age_at_recruitment_cat,
                                            levels=c("Age first tertile","Age second tertile","Age third tertile"))
 
 
-phtha<- c('adjusted_MEP','adjusted_MCPP','adjusted_MBZP','adjusted_MBP','adjusted_MIBP','adjusted_MEHP','adjusted_MEOHP','adjusted_MEHHP','adjusted_MECPP','adjusted_MCIOP','adjusted_MCINP','adjusted_MEHTP','adjusted_MEOHTP','adjusted_MEHHTP','adjusted_MECPTP')
+
+phtha<- c('adjusted_MEP_log','adjusted_MCPP_log','adjusted_MBZP_log','adjusted_MBP_log','adjusted_MIBP_log','adjusted_MEHP_log','adjusted_MEOHP_log','adjusted_MEHHP_log','adjusted_MECPP_log','adjusted_MCIOP_log','adjusted_MCINP_log','adjusted_MEOHTP_log','adjusted_MEHHTP_log','adjusted_MECPTP_log')
 
 str(phtha_log)
+
+phtha_parent<- c("DEP", "DBP", "BBzP", "DBP", "DiBP", "DEHP", "DEHP", "DEHP", "DEHP", "DiNP", "DiDP", "DEHTP", "DEHTP","DEHTP")
+phtha_group<- c("LMWPs", "HMWPs", "HMWPs", "LMWPs", "LMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs", "HMWPs")
+
+phtha_info<- data.frame(phtha,
+                        phtha_parent,
+                        phtha_group)
+
+
 ```
 
 # Linear Mixed-effect models
 ## model1: sociodemographic factors
 ```{r, message=FALSE,warning=FALSE}
-
 
 ## Fit the models
 phtha_mixreg1 <-
@@ -146,11 +155,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -190,11 +207,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -232,11 +257,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -273,11 +306,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -315,11 +356,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -356,17 +405,24 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
 
 tabel
-
 ```
 
 ### Vegetable stir fried
@@ -397,11 +453,19 @@ phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -447,11 +511,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -490,11 +562,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -533,17 +613,24 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
 
 tabel
-
 ```
 
 #### Fruit
@@ -575,11 +662,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -618,11 +713,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -660,11 +763,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -702,11 +813,19 @@ phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -751,11 +870,19 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -794,17 +921,24 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
 
 tabel
-
 ```
 
 
@@ -837,11 +971,19 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -879,11 +1021,19 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -922,11 +1072,19 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -964,11 +1122,19 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -1006,17 +1172,24 @@ phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           select(phtha, term, Estimate, conf.low, conf.high) 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
 
 phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = "phtha")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
 
 tabel
-
 ```
 
 
