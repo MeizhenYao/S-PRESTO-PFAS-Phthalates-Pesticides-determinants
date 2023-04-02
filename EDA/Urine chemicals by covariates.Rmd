@@ -1,0 +1,419 @@
+---
+title: "Urine chemicals by covariates"
+author: "Meizhen Yao"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+    df_print: kable
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    self_contained: yes
+    code_folding: hide
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+header-includes: \usepackage{multirow}
+---
+
+  <script language="javascript"> 
+    function toggle(num) {
+      var ele = document.getElementById("toggleText" + num);
+      var text = document.getElementById("displayText" + num);
+      if(ele.style.display == "block") {
+        ele.style.display = "none";
+        text.innerHTML = "show";
+      }
+      else {
+        ele.style.display = "block";
+        text.innerHTML = "hide";
+      }
+   } 
+  </script>
+
+<style>
+pre {
+  white-space: pre !important;
+  overflow-x: scroll !important;  
+  overflow-y: scroll !important;
+  height: auto !important;
+  max-height: 80vh !important;
+}
+</style>
+
+```{r setup, include=FALSE}
+options(digits = 4)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,cache=F,warning = FALSE)
+options(qwraps2_markup = "markdown")
+
+```
+
+```{r,message=FALSE,warning=FALSE,include=FALSE}
+library(broom)
+library(gtsummary)
+library(gt)
+library(tidyverse)
+library(ggpubr)
+library(cowplot)
+library(gridExtra)
+library(readxl)
+library(boot)
+library(table1)
+library(flextable)
+library(plyr)
+library(Rcpp)
+library(modelr)
+library(readr)
+library(blme)
+library(glmnet)
+library(forcats)
+library(GGally)
+
+#-------------------------------------------------------load data
+Phthalates<-  read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
+Pesticides<-  read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
+
+
+## log transformation
+
+Phthalates <- Phthalates %>% 
+              mutate(adjusted_MEP_log=log2(adjusted_MEP), 
+                              adjusted_MCPP_log=log2(adjusted_MCPP), 
+                              adjusted_MBZP_log=log2(adjusted_MBZP), 
+                              adjusted_MBP_log=log2(adjusted_MBP), 
+                              adjusted_MIBP_log=log2(adjusted_MIBP), 
+                              adjusted_MEHP_log=log2(adjusted_MEHP), 
+                              adjusted_MEOHP_log=log2(adjusted_MEOHP),
+                              adjusted_MEHHP_log=log2(adjusted_MEHHP), 
+                              adjusted_MECPP_log=log2(adjusted_MECPP), 
+                              adjusted_MCIOP_log=log2(adjusted_MCIOP), 
+                              adjusted_MCINP_log=log2(adjusted_MCINP),  
+                              adjusted_MEOHTP_log=log2(adjusted_MEOHTP), 
+                              adjusted_MEHHTP_log=log2(adjusted_MEHHTP), 
+                              adjusted_MECPTP_log=log2(adjusted_MECPTP))
+Pesticides <- Pesticides %>% 
+             mutate(adjusted_PBA_log=log2(adjusted_PBA), 
+                    adjusted_CIS_DCCA_log=log2(adjusted_CIS_DCCA), 
+                    adjusted_TRANS_DCCA_log=log2(adjusted_TRANS_DCCA), 
+                    adjusted_PNP_log=log2(adjusted_PNP), 
+                    adjusted_TCP_log=log2(adjusted_TCP), 
+                    adjusted_DMP_log=log2(adjusted_DMP), 
+                    adjusted_DMTP_log=log2(adjusted_DMTP), 
+                    adjusted_DMDP_log=log2(adjusted_DMDP), 
+                    adjusted_DEP_log=log2(adjusted_DEP), 
+                    adjusted_DETP_log=log2(adjusted_DETP), 
+                    adjusted_DEDP_log=log2(adjusted_DEDP))
+
+########################################################
+### covariates
+Phthalates$age_at_recruitment_cat<- factor(Phthalates$age_at_recruitment_cat,
+                                           levels=c("Age first tertile","Age second tertile","Age third tertile"))
+
+
+Phthalates$pcv1_bmi_cat<- factor(Phthalates$pcv1_bmi_cat,
+                                      levels=c("Underweight","Healthy weight","Overweight","Obesity"))
+
+
+Phthalates$Analysis_Batch_recat<- factor(Phthalates$Analysis_Batch_recat)
+
+Phthalates$ethnicity_specified_recat<- factor(Phthalates$ethnicity_specified_recat,
+                                             levels=c("Chinese","Malay","Indian"))
+
+Phthalates$pcv1_highest_education_completed_recat<- factor(Phthalates$pcv1_highest_education_completed_recat,
+                                           levels=c("University","Primary/Secondary/Post_secondary"))
+
+Phthalates$pcv1_household_income_recat<- factor(Phthalates$pcv1_household_income_recat,
+                                           levels=c("$5,696 and below","$5,697 - $10,159","$10,160 and above"))
+
+
+Phthalates$pcv1_parity_recat<- factor(Phthalates$pcv1_parity_recat,
+                                  levels=c("0",">= 1"))
+
+Phthalates$pcv1_smoker<- factor(Phthalates$pcv1_smoker,
+                                      levels=c("Never Smoke","Smoker","Ex-smoker"))
+                                      
+Phthalates$pcv1_ever_drink_alcohol<- factor(Phthalates$pcv1_ever_drink_alcohol,
+                                      levels=c("No","Yes"))
+
+
+Pesticides$age_at_recruitment_cat<- factor(Pesticides$age_at_recruitment_cat,
+                                           levels=c("Age first tertile","Age second tertile","Age third tertile"))
+
+
+Pesticides$pcv1_bmi_cat<- factor(Pesticides$pcv1_bmi_cat,
+                                      levels=c("Underweight","Healthy weight","Overweight","Obesity"))
+
+
+Pesticides$Analysis_Batch_recat<- factor(Pesticides$Analysis_Batch_recat)
+
+Pesticides$ethnicity_specified_recat<- factor(Pesticides$ethnicity_specified_recat,
+                                             levels=c("Chinese","Malay","Indian"))
+
+Pesticides$pcv1_highest_education_completed_recat<- factor(Pesticides$pcv1_highest_education_completed_recat,
+                                           levels=c("University","Primary/Secondary/Post_secondary"))
+
+Pesticides$pcv1_household_income_recat<- factor(Pesticides$pcv1_household_income_recat,
+                                           levels=c("$5,696 and below","$5,697 - $10,159","$10,160 and above"))
+
+
+Pesticides$pcv1_parity_recat<- factor(Pesticides$pcv1_parity_recat,
+                                  levels=c("0",">= 1"))
+
+Pesticides$pcv1_smoker<- factor(Pesticides$pcv1_smoker,
+                                      levels=c("Never Smoke","Smoker","Ex-smoker"))
+                                      
+Pesticides$pcv1_ever_drink_alcohol<- factor(Pesticides$pcv1_ever_drink_alcohol,
+                                      levels=c("No","Yes"))
+
+
+
+```
+
+
+
+# Univariate analysis
+```{r}
+demo_table <- Phthalates %>%
+    filter(Timepoint=="pcv2") %>% 
+    select(age_at_recruitment, pcv1_highest_education_completed_recat,ethnicity_specified_recat, pcv1_household_income_recat, pcv1_parity_recat, TotalFish, Fast_food, fruit, vegetable, vegetable_boil, vegetable_SF) %>%
+    tbl_summary(missing_text = "Missing", 
+                digits = everything() ~ 2
+                ) %>%
+    bold_labels()
+
+demo_table
+```
+
+
+
+
+# Bivariate analysis (pesticides)
+## Demographic
+### Age
+```{r,message=FALSE,warning=FALSE}
+pesticides_pcv2_age_table<- Pesticides %>% 
+  filter(Timepoint=="pcv2") %>% 
+  select(age_at_recruitment_cat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=age_at_recruitment_cat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_pgv3_age_table<- Pesticides %>% 
+  filter(Timepoint=="pgv3") %>% 
+  select(age_at_recruitment_cat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=age_at_recruitment_cat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_age_table<- tbl_stack(list(pesticides_pcv2_age_table, pesticides_pgv3_age_table),
+                                 group_header = c("pcv2", "pgv3"))%>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+pesticides_age_table
+```
+
+### Education
+```{r,message=FALSE,warning=FALSE}
+pesticides_pcv2_edu_table<- Pesticides %>% 
+  filter(Timepoint=="pcv2") %>% 
+  select(pcv1_highest_education_completed_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_highest_education_completed_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_pgv3_edu_table<- Pesticides %>% 
+  filter(Timepoint=="pgv3") %>% 
+  select(pcv1_highest_education_completed_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_highest_education_completed_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_edu_table<- tbl_stack(list(pesticides_pcv2_edu_table, pesticides_pgv3_edu_table),
+                                 group_header = c("pcv2", "pgv3"))%>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+pesticides_edu_table
+```
+
+### Ethinicity
+```{r,message=FALSE,warning=FALSE}
+pesticides_pcv2_ethi_table<- Pesticides %>% 
+  filter(Timepoint=="pcv2") %>% 
+  select(ethnicity_specified_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=ethnicity_specified_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_pgv3_ethi_table<- Pesticides %>% 
+  filter(Timepoint=="pgv3") %>% 
+  select(ethnicity_specified_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=ethnicity_specified_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_ethi_table<- tbl_stack(list(pesticides_pcv2_ethi_table, pesticides_pgv3_ethi_table),
+                                 group_header = c("pcv2", "pgv3"))%>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+pesticides_ethi_table
+```
+
+### Income
+```{r,message=FALSE,warning=FALSE}
+pesticides_pcv2_income_table<- Pesticides %>% 
+  filter(Timepoint=="pcv2") %>% 
+  select(pcv1_household_income_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_household_income_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_pgv3_income_table<- Pesticides %>% 
+  filter(Timepoint=="pgv3") %>% 
+  select(pcv1_household_income_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_household_income_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_income_table<- tbl_stack(list(pesticides_pcv2_income_table, pesticides_pgv3_income_table),
+                                 group_header = c("pcv2", "pgv3"))%>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+pesticides_income_table
+```
+
+
+### Parity
+```{r,message=FALSE,warning=FALSE}
+pesticides_pcv2_parity_table<- Pesticides %>% 
+  filter(Timepoint=="pcv2") %>% 
+  select(pcv1_parity_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_parity_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_pgv3_parity_table<- Pesticides %>% 
+  filter(Timepoint=="pgv3") %>% 
+  select(pcv1_parity_recat, adjusted_PBA_log,adjusted_CIS_DCCA_log,adjusted_TRANS_DCCA_log,adjusted_PNP_log,adjusted_TCP_log,adjusted_DMP_log,adjusted_DMTP_log,adjusted_DMDP_log,adjusted_DEP_log,adjusted_DETP_log,adjusted_DEDP_log) %>% 
+  tbl_summary(by=pcv1_parity_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() 
+
+pesticides_parity_table<- tbl_stack(list(pesticides_pcv2_parity_table, pesticides_pgv3_parity_table),
+                                 group_header = c("pcv2", "pgv3"))%>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+pesticides_parity_table
+```
+
+
+## Dietary factor
+```{r,warning=FALSE,message=FALSE}
+# specify metal mixture
+dietary_Pesticides=names(Pesticides[,c('adjusted_PBA','adjusted_CIS_DCCA','adjusted_TRANS_DCCA','adjusted_PNP','adjusted_TCP','adjusted_DMP','adjusted_DMTP','adjusted_DMDP','adjusted_DEP','adjusted_DETP','adjusted_DEDP',"TotalFish","Fast_food","fruit","vegetable","vegetable_boil","vegetable_SF")])
+# mixture_PFAS
+
+library(ggcorrplot)
+forcorr = cor(data.frame(Pesticides[,dietary_Pesticides]), method = "spearman")
+
+
+library(corrplot)
+corrplot(forcorr, 
+         method="color" ,
+         col = colorRampPalette(c("steelblue", "white", "darkred"))(100),cl.lim=c(0,1),
+         type="upper",
+         tl.pos = 'tp',
+         tl.srt=30,
+         tl.col = "black",
+         ) 
+corrplot(forcorr, 
+         method="number", 
+         type="lower", 
+         col = 'black', 
+         tl.pos = 'n',
+         cl.pos = 'n',
+         add=TRUE
+         )  
+
+
+
+dev.off()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

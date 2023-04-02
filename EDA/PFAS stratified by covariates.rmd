@@ -1,0 +1,1145 @@
+---
+title: "PFAS & Covariates"
+author: "Meizhen Yao"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+    df_print: paged
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    self_contained: yes
+    code_folding: hide
+    toc_depth: 6
+  editor_options: 
+    chunk_output_type: console
+header-includes: \usepackage{multirow}
+---
+
+<style type="text/css">
+body{
+  /*font-family: Helvetica;*/
+  font-size: 12pt;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+options(digits = 4)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,cache=F,warning = FALSE)
+# suppress warning messages for final rendering
+old.warn <- getOption("warn")
+options(qwraps2_markup = "markdown")
+
+```
+
+
+```{r,message=FALSE,warning=FALSE,include=FALSE}
+library(broom)
+library(gtsummary)
+library(gt)
+library(tidyverse)
+library(ggpubr)
+library(cowplot)
+library(gridExtra)
+library(readxl)
+library(boot)
+library(table1)
+library(flextable)
+library(plyr)
+library(Rcpp)
+library(modelr)
+library(readr)
+library(gWQS)
+library(broom.mixed)
+library(yaml)
+library(rmarkdown)
+library(officer)
+library(scales)
+library(ipw)
+library(survey)
+library(MatchIt)
+library(devtools)
+library(cobalt)
+# install_version("optmatch", version = "0.9.17", repos = "http://cran.us.r-project.org")
+# install_github("markmfredrickson/RItools")
+library(RItools)
+library(optmatch)
+library(mice)
+#-------------------------------------------------------load data
+blood<-  read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
+
+########################################################
+### PFAS variables (<LOD)
+#### factor
+blood$PFHpA_bi<- blood$PFHpA_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFHpA_Comment[i]==37){blood$PFHpA_bi[i]<-0}
+  else if (blood$PFHpA_Comment[i]==0){blood$PFHpA_bi[i]<-1}
+}
+blood$PFHpA_bi<- factor(blood$PFHpA_bi,
+                                  levels=c(0:1),
+                                  labels=c("<LOD",">=LOD"))
+
+blood$PFDA_bi<- blood$PFDA_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFDA_Comment[i]==37){blood$PFDA_bi[i]<-0}
+  else if (blood$PFDA_Comment[i]==0){blood$PFDA_bi[i]<-1}
+}
+blood$PFDA_bi<- factor(blood$PFDA_bi,
+                                  levels=c(0:1),
+                                  labels=c("<LOD",">=LOD"))
+
+blood$PFHpS_bi<- blood$PFHpS_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFHpS_Comment[i]==37){blood$PFHpS_bi[i]<-0}
+  else if (blood$PFHpS_Comment[i]==0){blood$PFHpS_bi[i]<-1}
+}
+blood$PFHpS_bi<- factor(blood$PFHpS_bi,
+                                  levels=c(0:1),
+                                  labels=c("<LOD",">=LOD"))
+
+
+blood$PFHxS_bi<- blood$PFHxS
+PFHxS_median <- quantile(blood$PFHxS, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFHxS[i]<PFHxS_median){blood$PFHxS_bi[i]<-0}
+  else if (blood$PFHxS[i]>=PFHxS_median){blood$PFHxS_bi[i]<-1}
+}
+blood$PFHxS_bi<- factor(blood$PFHxS_bi,
+                             levels=c(0:1),
+                             labels=c("Small","Large"))
+
+blood$PFOS_Total_bi<- blood$PFOS_Total
+PFOS_Total_median <- quantile(blood$PFOS_Total, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFOS_Total[i]<PFOS_Total_median){blood$PFOS_Total_bi[i]<-0}
+  else if (blood$PFOS_Total[i]>=PFOS_Total_median){blood$PFOS_Total_bi[i]<-1}
+}
+blood$PFOS_Total_bi<- factor(blood$PFOS_Total_bi,
+                             levels=c(0:1),
+                             labels=c("Small","Large"))
+
+blood$PFOA_Linear_bi<- blood$PFOA_Linear
+PFOA_Linear_median <- quantile(blood$PFOA_Linear, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFOA_Linear[i]<PFOA_Linear_median){blood$PFOA_Linear_bi[i]<-0}
+  else if (blood$PFOA_Linear[i]>=PFOA_Linear_median){blood$PFOA_Linear_bi[i]<-1}
+}
+blood$PFOA_Linear_bi<- factor(blood$PFOA_Linear_bi,
+                             levels=c(0:1),
+                             labels=c("Small","Large"))
+
+blood$PFNA_bi<- blood$PFNA
+PFNA_median <- quantile(blood$PFNA, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFNA[i]<PFNA_median){blood$PFNA_bi[i]<-0}
+  else if (blood$PFNA[i]>=PFNA_median){blood$PFNA_bi[i]<-1}
+}
+blood$PFNA_bi<- factor(blood$PFNA_bi,
+                             levels=c(0:1),
+                             labels=c("Small","Large"))
+
+### numeric
+blood$PFHpA_bi_num<- blood$PFHpA_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFHpA_Comment[i]==37){blood$PFHpA_bi_num[i]<-0}
+  else if (blood$PFHpA_Comment[i]==0){blood$PFHpA_bi_num[i]<-1}
+}
+
+blood$PFDA_bi_num<- blood$PFDA_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFDA_Comment[i]==37){blood$PFDA_bi_num[i]<-0}
+  else if (blood$PFDA_Comment[i]==0){blood$PFDA_bi_num[i]<-1}
+}
+
+blood$PFHpS_bi_num<- blood$PFHpS_Comment
+for(i in 1:nrow(blood)){
+  if ( blood$PFHpS_Comment[i]==37){blood$PFHpS_bi_num[i]<-0}
+  else if (blood$PFHpS_Comment[i]==0){blood$PFHpS_bi_num[i]<-1}
+}
+
+
+blood$PFHxS_bi_num<- blood$PFHxS
+PFHxS_median <- quantile(blood$PFHxS, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFHxS[i]<PFHxS_median){blood$PFHxS_bi_num[i]<-0}
+  else if (blood$PFHxS[i]>=PFHxS_median){blood$PFHxS_bi_num[i]<-1}
+}
+
+blood$PFOS_Total_bi_num<- blood$PFOS_Total
+PFOS_Total_median <- quantile(blood$PFOS_Total, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFOS_Total[i]<PFOS_Total_median){blood$PFOS_Total_bi_num[i]<-0}
+  else if (blood$PFOS_Total[i]>=PFOS_Total_median){blood$PFOS_Total_bi_num[i]<-1}
+}
+
+blood$PFOA_Linear_bi_num<- blood$PFOA_Linear
+PFOA_Linear_median <- quantile(blood$PFOA_Linear, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFOA_Linear[i]<PFOA_Linear_median){blood$PFOA_Linear_bi_num[i]<-0}
+  else if (blood$PFOA_Linear[i]>=PFOA_Linear_median){blood$PFOA_Linear_bi_num[i]<-1}
+}
+
+blood$PFNA_bi_num<- blood$PFNA
+PFNA_median <- quantile(blood$PFNA, c(1/2),na.rm=TRUE)
+for(i in 1:nrow(blood)){
+  if ( blood$PFNA[i]<PFNA_median){blood$PFNA_bi_num[i]<-0}
+  else if (blood$PFNA[i]>=PFNA_median){blood$PFNA_bi_num[i]<-1}
+}
+
+
+## log transformation
+blood_log <- blood %>% 
+                       mutate(PFHxS_log=log2(PFHxS), 
+                              PFOS_Total_log=log2(PFOS_Total), 
+                              PFOA_Linear_log=log2(PFOA_Linear), 
+                              PFNA_log=log2(PFNA))
+
+########################################################
+### covariates
+blood_log$age_at_recruitment_cat<- factor(blood_log$age_at_recruitment_cat,
+                                           levels=c("Age first tertile","Age second tertile","Age third tertile"))
+
+
+blood_log$pcv1_bmi_cat<- factor(blood_log$pcv1_bmi_cat,
+                                      levels=c("Underweight","Healthy weight","Overweight","Obesity"))
+
+
+blood_log$Analysis_Batch_recat<- factor(blood_log$Analysis_Batch_recat)
+
+blood_log$ethnicity_specified_recat<- factor(blood_log$ethnicity_specified_recat,
+                                             levels=c("Chinese","Malay","Indian"))
+
+blood_log$pcv1_highest_education_completed_recat<- factor(blood_log$pcv1_highest_education_completed_recat,
+                                           levels=c("University","Primary/Secondary/Post_secondary"))
+
+blood_log$pcv1_household_income_recat<- factor(blood_log$pcv1_household_income_recat,
+                                           levels=c("$5,696 and below","$5,697 - $10,159","$10,160 and above"))
+
+
+blood_log$pcv1_parity_recat<- factor(blood_log$pcv1_parity_recat,
+                                  levels=c("0",">= 1"))
+
+blood_log$pcv1_smoker<- factor(blood_log$pcv1_smoker,
+                                      levels=c("Never Smoke","Smoker","Ex-smoker"))
+                                      
+blood_log$pcv1_ever_drink_alcohol<- factor(blood_log$pcv1_ever_drink_alcohol,
+                                      levels=c("No","Yes"))
+
+
+label(blood_log$PFHxS_log)<- "Log2(PFHxS(ng/ml))"
+label(blood_log$PFHpA_bi_num)<- "PFHpA (LOD)"
+label(blood_log$PFDA_bi_num)<- "PFDA (LOD)"
+label(blood_log$PFHpS_bi_num)<- "PFHpS (LOD)"
+label(blood_log$PFOS_Total_log)<- "Log2(PFOS_Total(ng/ml))"
+label(blood_log$PFOA_Linear_log)<- "Log2(PFOA_Linear(ng/ml))"
+label(blood_log$PFNA_log)<- "Log2(PFNA(ng/ml))"
+
+```
+
+
+# Univariate analysis
+```{r}
+demo_table <- blood_log %>%
+    select(age_at_recruitment, pcv1_highest_education_completed_recat,ethnicity_specified_recat, pcv1_household_income_recat, pcv1_parity_recat, TotalFish, Fast_food, fruit, vegetable, vegetable_boil, vegetable_SF) %>%
+    tbl_summary(missing_text = "Missing", 
+                digits = everything() ~ 2
+                ) %>%
+    bold_labels()
+
+demo_table
+```
+
+
+# Bivariate analysis
+## Demographic
+### Age
+```{r,message=FALSE,warning=FALSE}
+blood_age_table<- blood_log %>% 
+  select(age_at_recruitment_cat, PFHxS_log, PFHpA_bi, PFOS_Total_log, PFOA_Linear_log, PFNA_log, PFDA_bi, PFHpS_bi) %>% 
+  tbl_summary(by=age_at_recruitment_cat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() %>%
+                       as_gt() %>% 
+                       tab_style(
+                                 style = cell_fill(color = "indianred3"),
+                                 locations = cells_body(
+                                 columns = p.value,
+                                 rows = p.value <=0.05)
+                                 )
+blood_age_table
+```
+
+<!-- ## BMI -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- blood_BMI_table<- Fertility %>%  -->
+<!--   select(pcv1_bmi_cat, PFHxS, PFHpA, PFOS_Total, PFOA_Linear, PFNA, PFDA, PFHpS) %>%  -->
+<!--   tbl_summary(by=pcv1_bmi_cat, -->
+<!--               missing_text = "Missing") %>%  -->
+<!--                   add_p() %>%  -->
+<!--                   bold_p()%>%   -->
+<!--                   bold_labels() %>% -->
+<!--                        as_gt() %>%  -->
+<!--                                   tab_style( -->
+<!--                                         style = cell_fill(color = "indianred3"), -->
+<!--                                         locations = cells_body( -->
+<!--                                         columns = p.value, -->
+<!--                                         rows = p.value <=0.05) -->
+<!--                                          ) -->
+<!-- blood_BMI_table -->
+<!-- ``` -->
+
+<!-- ## Drinking alcohol status -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- blood_alcohol_table<- Fertility %>%  -->
+<!--   select(pcv1_ever_drink_alcohol, PFHxS, PFHpA, PFOS_Total, PFOA_Linear, PFNA, PFDA, PFHpS) %>%  -->
+<!--   tbl_summary(by=pcv1_ever_drink_alcohol, -->
+<!--               missing_text = "Missing") %>%  -->
+<!--                   add_p() %>%  -->
+<!--                   bold_p()%>%   -->
+<!--                   bold_labels() %>% -->
+<!--                        as_gt() %>%  -->
+<!--                                   tab_style( -->
+<!--                                         style = cell_fill(color = "indianred3"), -->
+<!--                                         locations = cells_body( -->
+<!--                                         columns = p.value, -->
+<!--                                         rows = p.value <=0.05) -->
+<!--                                          ) -->
+<!-- blood_alcohol_table -->
+<!-- ``` -->
+
+### Education
+```{r,message=FALSE,warning=FALSE}
+blood_edu_table<- blood_log %>% 
+  select(pcv1_highest_education_completed_recat, PFHxS_log, PFHpA_bi, PFOS_Total_log, PFOA_Linear_log, PFNA_log, PFDA_bi, PFHpS_bi) %>% 
+  tbl_summary(by=pcv1_highest_education_completed_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() %>%
+                       as_gt() %>% 
+                                  tab_style(
+                                        style = cell_fill(color = "indianred3"),
+                                        locations = cells_body(
+                                        columns = p.value,
+                                        rows = p.value <=0.05)
+                                         )
+blood_edu_table
+```
+
+### Ethinicity
+```{r,message=FALSE,warning=FALSE}
+blood_ethinicity_table<- blood_log %>% 
+  select(ethnicity_specified_recat,PFHxS_log, PFHpA_bi, PFOS_Total_log, PFOA_Linear_log, PFNA_log, PFDA_bi, PFHpS_bi) %>% 
+  tbl_summary(by=ethnicity_specified_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() %>%
+                       as_gt() %>% 
+                                  tab_style(
+                                        style = cell_fill(color = "indianred3"),
+                                        locations = cells_body(
+                                        columns = p.value,
+                                        rows = p.value <=0.05)
+                                         )
+blood_ethinicity_table
+```
+
+### Income
+```{r,message=FALSE,warning=FALSE}
+blood_Income_table<- blood_log %>% 
+  select(pcv1_household_income_recat, PFHxS_log, PFHpA_bi, PFOS_Total_log, PFOA_Linear_log, PFNA_log, PFDA_bi, PFHpS_bi) %>% 
+  tbl_summary(by=pcv1_household_income_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() %>%
+                       as_gt() %>% 
+                                  tab_style(
+                                        style = cell_fill(color = "indianred3"),
+                                        locations = cells_body(
+                                        columns = p.value,
+                                        rows = p.value <=0.05)
+                                         )
+blood_Income_table
+```
+
+### Parity
+```{r,message=FALSE,warning=FALSE}
+blood_Parity_table<- blood_log %>% 
+  select(pcv1_parity_recat, PFHxS_log, PFHpA_bi, PFOS_Total_log, PFOA_Linear_log, PFNA_log, PFDA_bi, PFHpS_bi) %>% 
+  tbl_summary(by=pcv1_parity_recat,
+              missing_text = "Missing") %>% 
+                  add_p() %>% 
+                  bold_p()%>%  
+                  bold_labels() %>%
+                       as_gt() %>% 
+                                  tab_style(
+                                        style = cell_fill(color = "indianred3"),
+                                        locations = cells_body(
+                                        columns = p.value,
+                                        rows = p.value <=0.05)
+                                         )
+blood_Parity_table
+```
+
+<!-- ## Smoking status -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- blood_smoke_table<- Fertility %>%  -->
+<!--   select(pcv1_smoker, PFHxS, PFHpA, PFOS_Total, PFOA_Linear, PFNA, PFDA, PFHpS) %>%  -->
+<!--   tbl_summary(by=pcv1_smoker, -->
+<!--               missing_text = "Missing") %>%  -->
+<!--                   add_p() %>%  -->
+<!--                   bold_p()%>%   -->
+<!--                   bold_labels() %>% -->
+<!--                        as_gt() %>%  -->
+<!--                                   tab_style( -->
+<!--                                         style = cell_fill(color = "indianred3"), -->
+<!--                                         locations = cells_body( -->
+<!--                                         columns = p.value, -->
+<!--                                         rows = p.value <=0.05) -->
+<!--                                          ) -->
+<!-- blood_smoke_table -->
+<!-- ``` -->
+
+
+## Dietary factor
+```{r,warning=FALSE,message=FALSE}
+# specify metal mixture
+dietary_PFAS=names(blood_log[,c("PFHxS","PFHpA","PFOS_Total","PFOA_Linear","PFNA","PFDA","PFHpS","TotalFish","Fast_food","fruit","vegetable","vegetable_boil","vegetable_SF")])
+# mixture_PFAS
+
+library(ggcorrplot)
+forcorr = cor(data.frame(blood_log[,dietary_PFAS]), method = "spearman")
+
+
+library(corrplot)
+corrplot(forcorr, 
+         method="color" ,
+         col = colorRampPalette(c("steelblue", "white", "darkred"))(100),cl.lim=c(0,1),
+         type="upper",
+         tl.pos = 'tp',
+         tl.srt=30,
+         tl.col = "black",
+         ) 
+corrplot(forcorr, 
+         method="number", 
+         type="lower", 
+         col = 'black', 
+         tl.pos = 'n',
+         cl.pos = 'n',
+         add=TRUE
+         )  
+
+
+
+dev.off()
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- # Plots (Log 2 transformation) -->
+<!-- ## Age -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_age<- Fertility %>%  -->
+<!--                              filter(is.na(age_at_recruitment_cat)==FALSE) %>% -->
+<!--                              group_by(age_at_recruitment_cat) %>% -->
+<!--                              dplyr::mutate(age_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(age_updated = paste0(age_at_recruitment_cat, "; n=", age_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- PFAS_cont_age<-             ggplot(Fertility_continuous_age,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~age_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_age<- Fertility %>%  -->
+<!--                              filter(is.na(age_at_recruitment_cat)==FALSE) %>% -->
+<!--                              group_by(age_at_recruitment_cat) %>% -->
+<!--                              dplyr::mutate(age_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(age_updated = paste0(age_at_recruitment_cat, "; n=", age_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_age$y<- factor(Fertility_binary_age$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder age levels -->
+<!-- Fertility_binary_age$age_updated<- factor(Fertility_binary_age$age_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_age[order(Fertility_binary_age$age_at_recruitment_cat),]$age_updated)) -->
+
+
+<!-- PFAS_bi_age<-            ggplot(Fertility_binary_age,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~age_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_age<- ggarrange(PFAS_cont_age,PFAS_bi_age, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Age level", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_age                        -->
+<!-- ``` -->
+
+<!-- ## BMI -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+
+<!-- Fertility_continuous_BMI<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_bmi_cat)==FALSE) %>% -->
+<!--                              group_by(pcv1_bmi_cat) %>% -->
+<!--                              dplyr::mutate(BMI_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(BMI_updated = factor(paste0(pcv1_bmi_cat, "; n=", BMI_count))) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+<!-- ## reorder BMI levels -->
+<!-- Fertility_continuous_BMI$BMI_updated=fct_reorder(Fertility_continuous_BMI$BMI_updated, Fertility_continuous_BMI$pcv1_bmi) -->
+
+<!-- PFAS_cont_BMI<-             ggplot(Fertility_continuous_BMI,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~BMI_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_BMI<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_bmi_cat)==FALSE) %>% -->
+<!--                              group_by(pcv1_bmi_cat) %>% -->
+<!--                              dplyr::mutate(BMI_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(BMI_updated = paste0(pcv1_bmi_cat, "; n=", BMI_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_BMI$y<- factor(Fertility_binary_BMI$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder BMI levels -->
+<!-- Fertility_binary_BMI$BMI_updated<- factor(Fertility_binary_BMI$BMI_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_BMI[order(Fertility_binary_BMI$pcv1_bmi_cat),]$BMI_updated)) -->
+
+
+<!-- PFAS_bi_BMI<-            ggplot(Fertility_binary_BMI,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~BMI_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_BMI<- ggarrange(PFAS_cont_BMI,PFAS_bi_BMI, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by BMI level", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_BMI                      -->
+<!-- ``` -->
+
+<!-- ## Drinking alcohol status -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_alcohol<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_ever_drink_alcohol)==FALSE) %>% -->
+<!--                              group_by(pcv1_ever_drink_alcohol) %>% -->
+<!--                              dplyr::mutate(alcohol_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(alcohol_updated = paste0(pcv1_ever_drink_alcohol, "; n=", alcohol_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- PFAS_cont_alcohol<-             ggplot(Fertility_continuous_alcohol,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~alcohol_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_alcohol<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_ever_drink_alcohol)==FALSE) %>% -->
+<!--                              group_by(pcv1_ever_drink_alcohol) %>% -->
+<!--                              dplyr::mutate(alcohol_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(alcohol_updated = paste0(pcv1_ever_drink_alcohol, "; n=", alcohol_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_alcohol$y<- factor(Fertility_binary_alcohol$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder alcohol levels -->
+<!-- Fertility_binary_alcohol$alcohol_updated<- factor(Fertility_binary_alcohol$alcohol_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_alcohol[order(Fertility_binary_alcohol$pcv1_ever_drink_alcohol),]$alcohol_updated)) -->
+
+
+<!-- PFAS_bi_alcohol<-            ggplot(Fertility_binary_alcohol,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~alcohol_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_alcohol<- ggarrange(PFAS_cont_alcohol,PFAS_bi_alcohol, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Alcohol status", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_alcohol                    -->
+<!-- ``` -->
+
+<!-- ## Education -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_Education<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_highest_education_completed_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_highest_education_completed_recat) %>% -->
+<!--                              dplyr::mutate(Education_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Education_updated = paste0(pcv1_highest_education_completed_recat, "; n=", Education_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- ## reorder education levels -->
+<!-- Fertility_continuous_Education$Education_updated<- factor(Fertility_continuous_Education$Education_updated,  -->
+<!--                                                                 levels =unique(Fertility_continuous_Education[order(Fertility_continuous_Education$pcv1_highest_education_completed_recat),]$Education_updated)) -->
+
+<!-- PFAS_cont_Education<-       ggplot(Fertility_continuous_Education,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~Education_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_Education<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_highest_education_completed_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_highest_education_completed_recat) %>% -->
+<!--                              dplyr::mutate(Education_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Education_updated = paste0(pcv1_highest_education_completed_recat, "; n=", Education_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_Education$y<- factor(Fertility_binary_Education$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder Education levels -->
+<!-- Fertility_binary_Education$Education_updated<- factor(Fertility_binary_Education$Education_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_Education[order(Fertility_binary_Education$pcv1_highest_education_completed_recat),]$Education_updated)) -->
+
+
+<!-- PFAS_bi_Education<-            ggplot(Fertility_binary_Education,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~Education_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_Education<- ggarrange(PFAS_cont_Education,PFAS_bi_Education, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Education level", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_Education                    -->
+<!-- ``` -->
+
+<!-- ## Ethnicity -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_Ethnicity<- Fertility %>%  -->
+<!--                              filter(is.na(ethnicity_specified_recat)==FALSE) %>% -->
+<!--                              group_by(ethnicity_specified_recat) %>% -->
+<!--                              dplyr::mutate(Ethnicity_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Ethnicity_updated = paste0(ethnicity_specified_recat, "; n=", Ethnicity_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- ## reorder Ethnicity levels -->
+<!-- PFAS_cont_Ethnicity<-       ggplot(Fertility_continuous_Ethnicity,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~Ethnicity_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_Ethnicity<- Fertility %>%  -->
+<!--                              filter(is.na(ethnicity_specified_recat)==FALSE) %>% -->
+<!--                              group_by(ethnicity_specified_recat) %>% -->
+<!--                              dplyr::mutate(Ethnicity_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Ethnicity_updated = paste0(ethnicity_specified_recat, "; n=", Ethnicity_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_Ethnicity$y<- factor(Fertility_binary_Ethnicity$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder Ethnicity levels -->
+<!-- Fertility_binary_Ethnicity$Ethnicity_updated<- factor(Fertility_binary_Ethnicity$Ethnicity_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_Ethnicity[order(Fertility_binary_Ethnicity$ethnicity_specified_recat),]$Ethnicity_updated)) -->
+
+
+<!-- PFAS_bi_Ethnicity<-            ggplot(Fertility_binary_Ethnicity,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~Ethnicity_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_Ethnicity<- ggarrange(PFAS_cont_Ethnicity,PFAS_bi_Ethnicity, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Ethnicity", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_Ethnicity                        -->
+<!-- ``` -->
+
+<!-- ## Income -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_Income<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_household_income_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_household_income_recat) %>% -->
+<!--                              dplyr::mutate(Income_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Income_updated = paste0(pcv1_household_income_recat, "; n=", Income_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- ## reorder Income levels -->
+<!-- Fertility_continuous_Income$Income_updated<- factor(Fertility_continuous_Income$Income_updated,  -->
+<!--                                                                 levels =unique(Fertility_continuous_Income[order(Fertility_continuous_Income$pcv1_household_income_recat),]$Income_updated)) -->
+
+<!-- PFAS_cont_Income<-       ggplot(Fertility_continuous_Income,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~Income_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_Income<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_household_income_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_household_income_recat) %>% -->
+<!--                              dplyr::mutate(Income_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Income_updated = paste0(pcv1_household_income_recat, "; n=", Income_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_Income$y<- factor(Fertility_binary_Income$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder Income levels -->
+<!-- Fertility_binary_Income$Income_updated<- factor(Fertility_binary_Income$Income_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_Income[order(Fertility_binary_Income$pcv1_household_income_recat),]$Income_updated)) -->
+
+
+<!-- PFAS_bi_Income<-            ggplot(Fertility_binary_Income,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~Income_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_Income<- ggarrange(PFAS_cont_Income,PFAS_bi_Income, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Income level", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_Income                        -->
+
+<!-- ``` -->
+
+<!-- ## Parity -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_Parity<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_parity_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_parity_recat) %>% -->
+<!--                              dplyr::mutate(Parity_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Parity_updated = paste0(pcv1_parity_recat, "; n=", Parity_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- ## reorder Parity levels -->
+<!-- Fertility_continuous_Parity$Parity_updated<- factor(Fertility_continuous_Parity$Parity_updated,  -->
+<!--                                                                 levels =unique(Fertility_continuous_Parity[order(Fertility_continuous_Parity$pcv1_parity_recat),]$Parity_updated)) -->
+
+<!-- PFAS_cont_Parity<-       ggplot(Fertility_continuous_Parity,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~Parity_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_Parity<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_parity_recat)==FALSE) %>% -->
+<!--                              group_by(pcv1_parity_recat) %>% -->
+<!--                              dplyr::mutate(Parity_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Parity_updated = paste0(pcv1_parity_recat, "; n=", Parity_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_Parity$y<- factor(Fertility_binary_Parity$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder Parity levels -->
+<!-- Fertility_binary_Parity$Parity_updated<- factor(Fertility_binary_Parity$Parity_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_Parity[order(Fertility_binary_Parity$pcv1_parity_recat),]$Parity_updated)) -->
+
+
+<!-- PFAS_bi_Parity<-            ggplot(Fertility_binary_Parity,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~Parity_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_Parity<- ggarrange(PFAS_cont_Parity,PFAS_bi_Parity, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Parity status", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_Parity                        -->
+
+
+<!-- ``` -->
+
+<!-- ## Smoking status -->
+<!-- ```{r,message=FALSE,warning=FALSE} -->
+<!-- #----------------------------------------continuous PFAS -->
+<!-- Fertility_continuous_Smoker<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_smoker)==FALSE) %>% -->
+<!--                              group_by(pcv1_smoker) %>% -->
+<!--                              dplyr::mutate(Smoker_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Smoker_updated = paste0(pcv1_smoker, "; n=", Smoker_count)) %>%  -->
+<!--                              pivot_longer(col = c(PFHxS_log,PFOS_Total_log,PFOA_Linear_log,PFNA_log), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- ## reorder Smoker levels -->
+<!-- Fertility_continuous_Smoker$Smoker_updated<- factor(Fertility_continuous_Smoker$Smoker_updated,  -->
+<!--                                                                 levels =unique(Fertility_continuous_Smoker[order(Fertility_continuous_Smoker$pcv1_smoker),]$Smoker_updated)) -->
+
+<!-- PFAS_cont_Smoker<-       ggplot(Fertility_continuous_Smoker,aes(x=PFAS,y=y)) + -->
+<!--                             geom_boxplot(aes(fill=PFAS)) + -->
+<!--                             facet_grid(.~Smoker_updated, scales="free")+ -->
+<!--                             labs(title="Continuous PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Log 2 (Concentration (ng/ml))")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_blank(), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                        size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------binary PFAS -->
+<!-- Fertility_binary_Smoker<- Fertility %>%  -->
+<!--                              filter(is.na(pcv1_smoker)==FALSE) %>% -->
+<!--                              group_by(pcv1_smoker) %>% -->
+<!--                              dplyr::mutate(Smoker_count = n()) %>% -->
+<!--                              ungroup() %>% -->
+<!--                              mutate(Smoker_updated = paste0(pcv1_smoker, "; n=", Smoker_count)) %>%   -->
+<!--                              pivot_longer(col = c(PFHpA_bi,PFDA_bi,PFHpS_bi), -->
+<!--                                           values_to="y", -->
+<!--                                           names_to="PFAS") -->
+
+<!-- Fertility_binary_Smoker$y<- factor(Fertility_binary_Smoker$y, -->
+<!--                                   levels=c(1:0), -->
+<!--                                   labels=c(">=LOD","<LOD")) -->
+
+<!-- ## reorder Smoker levels -->
+<!-- Fertility_binary_Smoker$Smoker_updated<- factor(Fertility_binary_Smoker$Smoker_updated,  -->
+<!--                                                                 levels =unique(Fertility_binary_Smoker[order(Fertility_binary_Smoker$pcv1_smoker),]$Smoker_updated)) -->
+
+
+<!-- PFAS_bi_Smoker<-            ggplot(Fertility_binary_Smoker,aes(x=PFAS,fill=y,  by = as.factor(PFAS))) + -->
+<!--                             geom_bar(position = "fill") + -->
+<!--                             geom_text(stat = "prop", position = position_fill(.5))+ -->
+<!--                             scale_fill_brewer(palette="Set2")+ -->
+<!--                             facet_grid(.~Smoker_updated, scales="free")+ -->
+<!--                             labs(title="Binary PFAS")+ -->
+<!--                             xlab("")+ -->
+<!--                             ylab("Count number")+ -->
+<!--                             theme( -->
+<!--                             title = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.title.y = element_text(color="black", size=10, face="bold"), -->
+<!--                             axis.text.x=element_text(size=9, face="bold"), -->
+<!--                             axis.text.y=element_text(size=9, face="bold"), -->
+<!--                             strip.background = element_rect(colour="black", fill="lightsteelblue1",  -->
+<!--                                                             size=1.5, linetype="blank"), -->
+<!--                             strip.text = element_text(color="black", size=8, face="bold"), -->
+<!--                             legend.position = "bottom", -->
+<!--                             legend.title = element_text(color="black", face="bold")) -->
+
+
+<!-- #-----------------------------------------Combine plots -->
+<!-- PFAS_Smoker<- ggarrange(PFAS_cont_Smoker,PFAS_bi_Smoker, -->
+<!--                         nrow=2,ncol=1, -->
+<!--                         align = "v") %>%  -->
+<!--               annotate_figure( -->
+<!--                         top = text_grob("PFAS by Smoking status", color = "black", face = "bold", size = 14)) -->
+
+<!-- PFAS_Smoker                        -->
+
+
+<!-- ``` -->
+
+
+
+
+
+
