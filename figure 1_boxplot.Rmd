@@ -1,0 +1,288 @@
+---
+title: "Summarized Chemical Concentration Plots"
+author: "Meizhen Yao"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+    df_print: kable
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    self_contained: yes
+    code_folding: hide
+    toc_depth: 6
+  pdf_document:
+    toc: yes
+    toc_depth: '6'
+header-includes: \usepackage{multirow}
+---
+
+  <script language="javascript"> 
+    function toggle(num) {
+      var ele = document.getElementById("toggleText" + num);
+      var text = document.getElementById("displayText" + num);
+      if(ele.style.display == "block") {
+        ele.style.display = "none";
+        text.innerHTML = "show";
+      }
+      else {
+        ele.style.display = "block";
+        text.innerHTML = "hide";
+      }
+   } 
+  </script>
+
+<style>
+pre {
+  white-space: pre !important;
+  overflow-x: scroll !important;  
+  overflow-y: scroll !important;
+  height: auto !important;
+  max-height: 80vh !important;
+}
+</style>
+
+```{r setup, include=FALSE}
+options(digits = 4)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,cache=F,warning = FALSE)
+options(qwraps2_markup = "markdown")
+
+```
+
+
+
+```{r}
+# load packages
+library(yaml)
+library(rmarkdown)
+library(tidyverse)
+library(flextable)
+library(officer)
+library(Rcpp)
+library(scales)
+library(formattable)
+library(broom)
+library(readxl)
+library(ggpubr)
+library(ggcorrplot)
+
+# import data (change the path to the location where you save the dataset)
+PFAS<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
+Phthalates<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
+Pesticides<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
+
+# generate long format datasetss
+PFAS_long<- PFAS %>% 
+            pivot_longer(cols=c(PFOS_Total, PFOA_Linear, PFNA, PFHxS, PFDA, PFHpA, PFHpS, PFBS, NEtFOSAA, NMeFOSAA, PAP, diPAP, FTS, PFOSA, PFDS),
+                         names_to = "PFAS",
+                         values_to="y")
+
+phtha_long<- Phthalates %>% 
+            pivot_longer(cols=c(adjusted_MEP,adjusted_MCPP,adjusted_MBZP,adjusted_MBP,adjusted_MIBP,adjusted_MEHP,adjusted_MEOHP,adjusted_MEHHP,adjusted_MECPP,adjusted_MCIOP,adjusted_MCINP,adjusted_MEHTP,adjusted_MEOHTP,adjusted_MEHHTP,adjusted_MECPTP),
+                         names_to = "PHTHA",
+                         values_to="y")
+
+pest_long<- Pesticides %>% 
+            pivot_longer(cols=c(adjusted_PBA,adjusted_FPBA,adjusted_CIS_DCCA,adjusted_TRANS_DCCA,adjusted_PCP,adjusted_PNP,adjusted_TCP,adjusted_DMP,adjusted_DMTP,adjusted_DMDP,adjusted_DEP,adjusted_DETP,adjusted_DEDP),
+                         names_to = "PEST",
+                         values_to="y")
+
+
+# Check median for chemicals
+
+PFAS_long$PFAS<- factor(PFAS_long$PFAS,
+                        levels=c('PFOS_Total', 'PFOA_Linear', 'PFNA', 'PFHxS', 'PFDA', 'PFHpA', 'PFHpS', 'PFBS', 'NEtFOSAA', 'NMeFOSAA', 'PAP', 'diPAP', 'FTS', 'PFOSA', 'PFDS'))
+
+summary_PFAS<- PFAS_long %>%
+  mutate(log_y=log2(y)) %>%
+  select(y, log_y,PFAS) %>%
+  tbl_summary(
+    by = c(PFAS),
+    type = everything() ~ "continuous",
+    statistic = list(all_continuous() ~ "{median}")
+  )
+summary_PFAS
+
+summary_pcv2<- pest_long %>%
+  filter(Timepoint=="pcv2") %>%
+  mutate(log_pest=log2(y)) %>%
+  select(PEST, log_pest) %>%
+  tbl_summary(
+    by = c(PEST),
+    type = everything() ~ "continuous",
+    statistic = list(all_continuous() ~ "{median}")
+  )
+
+summary_pgv3<- pest_long %>%
+  filter(Timepoint=="pgv3") %>%
+  mutate(log_pest=log2(y)) %>%
+  select(PEST, log_pest) %>%
+  tbl_summary(
+    by = c(PEST),
+    type = everything() ~ "continuous",
+    statistic = list(all_continuous() ~ "{median}")
+  )
+
+
+```
+
+
+# Figure 1
+## PFAS
+```{r,message=FALSE,warning=FALSE}
+
+# PFAS
+PFAS_LOD<- c("NA", "97.4%", "60.7%", "100.0%", "41.4%", "33.9%", "48.4%", "0.3%", "0.0%", "1.6%", "1.3%", "0.5%", "0.0%", "0.0%", "0.0%")
+PFAS_name<- c('PFOS_Total', 'PFOA_Linear', 'PFNA', 'PFHxS', 'PFDA', 'PFHpA', 'PFHpS', 'PFBS', 'NEtFOSAA', 'NMeFOSAA', 'PAP', 'diPAP', 'FTS', 'PFOSA', 'PFDS')
+PFAS_median<- c(1.32,	0.82,	-0.67,	-0.79,	-1.50,	-2.82,	-2.82,	-2.82,	-2.82,	-3.82,	-3.82,	-3.82,	-3.82,	-3.82,	-3.82)
+PFAS_inform<- data.frame(PFAS_LOD, PFAS_name, PFAS_median)
+
+PFAS_long$PFAS<- factor(PFAS_long$PFAS,
+                        levels=c('PFOS_Total', 'PFOA_Linear', 'PFNA', 'PFHxS', 'PFDA', 'PFHpA', 'PFHpS', 'PFBS', 'NEtFOSAA', 'NMeFOSAA', 'PAP', 'diPAP', 'FTS', 'PFOSA', 'PFDS'))
+
+##plot
+PFAS_plot<- ggplot(PFAS_long, aes(x=PFAS, y=log2(y))) + 
+  geom_boxplot(color="#626567",fill="#5DADE2")+
+  geom_text(data=PFAS_inform, aes(x=PFAS_name, y=PFAS_median, label = PFAS_LOD), 
+            vjust=-0.5) +
+  # coord_cartesian(ylim = c(0, 5))+
+  scale_y_continuous(name="log (Concentration (ng/ml))") +
+  scale_x_discrete(name="PFAS w/ (above LOD)% ",
+                   labels=c("PFOA_Linear"="PFOA", "PFOS_Total"="PFOS")) +
+  labs(
+    title="PFAS"
+  )+
+  theme(
+    title=element_text(size=10, face="bold"),
+    axis.title.y=element_text(size=10, face="bold",color="black"),
+    axis.title.x=element_text(size=10, face="bold",color="black"),
+    axis.text.x=element_text(size=10,color="black")
+  )
+PFAS_plot
+ 
+
+```
+
+## Phthalates
+```{r}
+phtha_LOD<- c("100.0%", "100.0%", "90.8%", "88.2%", "81.6%", "86.8%", "100.0%", "100.0%", "100.0%", "100.0%", "100.0%", "98.7%", "100.0%", "100.0%", "100.0%", "100.0%", "100.0%", "100.0%", "100.0%", "100.0%", "71.1%", "61.8%", "0.0%", "3.9%", "100.0%", "92.1%", "100.0%", "97.4%", "100.0%", "100.0%")
+phtha_name<- c('adjusted_MEP','adjusted_MEP','adjusted_MCPP','adjusted_MCPP','adjusted_MBZP','adjusted_MBZP','adjusted_MBP','adjusted_MBP','adjusted_MIBP','adjusted_MIBP','adjusted_MEHP','adjusted_MEHP','adjusted_MEOHP','adjusted_MEOHP','adjusted_MEHHP','adjusted_MEHHP','adjusted_MECPP','adjusted_MECPP','adjusted_MCIOP','adjusted_MCIOP','adjusted_MCINP','adjusted_MCINP','adjusted_MEHTP','adjusted_MEHTP','adjusted_MEOHTP','adjusted_MEOHTP','adjusted_MEHHTP','adjusted_MEHHTP','adjusted_MECPTP','adjusted_MECPTP')
+phtha_median<- c(4.58, 4.76, 1.31, 1.11, 1.17, 1.24, 4.78, 5.23, 3.90, 4.12, 2.19, 2.46, 2.87, 3.41, 3.83, 4.13, 4.12, 4.33, 4.31, 4.04, 0.48, 0.30, 0.38, 0.33, 2.03, 1.91, 2.77, 2.40, 5.37, 5.10)
+phtha_time<- c("pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3","pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3")
+phtha_inform<- data.frame(phtha_LOD, phtha_name, phtha_median, phtha_time)
+
+phtha_long$PHTHA<- factor(phtha_long$PHTHA,
+                        levels=c('adjusted_MEP','adjusted_MCPP','adjusted_MBZP','adjusted_MBP','adjusted_MIBP','adjusted_MEHP','adjusted_MEOHP','adjusted_MEHHP','adjusted_MECPP','adjusted_MCIOP','adjusted_MCINP','adjusted_MEHTP','adjusted_MEOHTP','adjusted_MEHHTP','adjusted_MECPTP'))
+
+##plot
+phtha_plot<- ggplot(phtha_long, aes(x=PHTHA, y=log2(y), fill=Timepoint), position = position_dodge(width = 0.4)) + 
+    geom_boxplot(color="#626567")+
+    geom_text(data=phtha_inform, aes(x=phtha_name, y=phtha_median, label = phtha_LOD, fill=phtha_time), position = position_dodge(width = 0.8), 
+              vjust=-0.5) +
+    # coord_cartesian(ylim = c(0, 250))+
+    scale_y_continuous(name="log(Concentration (µg/g))") +
+    scale_x_discrete(name="Phthalates w/ (above LOD)%",
+                     labels=c('adjusted_MEP'='MEP',
+                              'adjusted_MCPP'='MCPP',
+                              'adjusted_MBZP'='MBZP',
+                              'adjusted_MBP'='MBP',
+                              'adjusted_MIBP'='MIBP',
+                              'adjusted_MEHP'='MEHP',
+                              'adjusted_MEOHP'='MEOHP',
+                              'adjusted_MEHHP'='MEHHP',
+                              'adjusted_MECPP'='MECPP',
+                              'adjusted_MCIOP'='MCIOP',
+                              'adjusted_MCINP'='MCINP',
+                              'adjusted_MEHTP'='MEHTP',
+                              'adjusted_MEOHTP'='MEOHTP',
+                              'adjusted_MEHHTP'='MEHHTP',
+                              'adjusted_MECPTP'='MECPTP'))+
+    scale_fill_manual(name = "Timepoint", labels = c("Preconception", "Pregnancy"),values = c("#5DADE2", "#3053D0")) +
+    labs(
+      title="Phthalates"
+    )+
+    theme(
+      title=element_text(size=10, face="bold"),
+      axis.title.y=element_text(size=10, face="bold",color="black"),
+      axis.title.x=element_text(size=10, face="bold",color="black"),
+      axis.text.x=element_text(size=10,color="black"),
+      legend.position = "bottom",
+      legend.title=element_text(size=10, face="bold",color="black"),
+      legend.text=element_text(size=10, face="bold",color="black")
+    )
+
+phtha_plot
+
+
+```
+
+## Pesticides
+```{r}
+pest_LOD<- c('99.0%','96.2%','10.2%','5.1%','82.7%','80.8%','93.9%','92.3%','18.4%','21.8%','79.6%','91.0%','96.9%','94.9%','98.0%','97.4%','90.8%','88.5%','48.0%','57.7%','99.0%','100.0%','100.0%','100.0%','58.2%','79.5%')
+pest_name<- c('adjusted_PBA','adjusted_PBA','adjusted_FPBA','adjusted_FPBA','adjusted_CIS_DCCA','adjusted_CIS_DCCA','adjusted_TRANS_DCCA','adjusted_TRANS_DCCA','adjusted_PCP','adjusted_PCP','adjusted_PNP','adjusted_PNP','adjusted_TCP','adjusted_TCP','adjusted_DMP','adjusted_DMP','adjusted_DMTP','adjusted_DMTP','adjusted_DMDP','adjusted_DMDP','adjusted_DEP','adjusted_DEP','adjusted_DETP','adjusted_DETP','adjusted_DEDP','adjusted_DEDP')
+pest_median<- c(0.07,-0.18,	-3.35,-3.60,	-1.30,-1.24,	-0.20,-0.09, -3.27,-3.35,	1.14,1.39,	1.08,1.61,	3.44,	3.39, 2.00,2.10,	-0.34,0.04,	3.68,4.39,	2.53,2.93,	0.05,0.49)
+pest_time<- c("pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3","pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3")
+pest_inform<- data.frame(pest_LOD, pest_name, pest_median, pest_time)
+
+pest_long$PEST<- factor(pest_long$PEST,
+                        levels=c('adjusted_PBA','adjusted_FPBA','adjusted_CIS_DCCA','adjusted_TRANS_DCCA','adjusted_PCP','adjusted_PNP','adjusted_TCP','adjusted_DMP','adjusted_DMTP','adjusted_DMDP','adjusted_DEP','adjusted_DETP','adjusted_DEDP'))
+
+##plot
+pest_plot<- ggplot(pest_long, aes(x=PEST, y=log2(y), fill=Timepoint), position = position_dodge(width = 0.4)) + 
+    geom_boxplot(color="#626567")+
+    geom_text(data=pest_inform, aes(x=pest_name, y=pest_median, label = pest_LOD, fill=pest_time), position = position_dodge(width = 0.8), 
+              vjust=-0.5) +
+    # coord_cartesian(ylim = c(0, 250))+
+    scale_y_continuous(name="log(Concentration (µg/g))") +
+    scale_x_discrete(name="pesticides w/ (above LOD)%",
+                     labels=c('adjusted_PBA'="PBA",
+                              'adjusted_FPBA'="FPBA",
+                              'adjusted_CIS_DCCA'="CIS_DCCA",
+                              'adjusted_TRANS_DCCA'="TRANS_DCCA",
+                              'adjusted_PCP'="PCP",
+                              'adjusted_PNP'="PNP",
+                              'adjusted_TCP'="TCP",
+                              'adjusted_DMP'="DMP",
+                              'adjusted_DMTP'="DMTP",
+                              'adjusted_DMDP'="DMDP",
+                              'adjusted_DEP'="DEP",
+                              'adjusted_DETP'="DETP",
+                              'adjusted_DEDP'="DEDP"))+
+    scale_fill_manual(name = "Timepoint", labels = c("Preconception", "Pregnancy"),values = c("#5DADE2", "#3053D0")) +
+    labs(
+      title="Pesticides"
+    )+
+    theme(
+      title=element_text(size=10, face="bold"),
+      axis.title.y=element_text(size=10, face="bold",color="black"),
+      axis.title.x=element_text(size=10, face="bold",color="black"),
+      axis.text.x=element_text(size=10,color="black"),
+      legend.position = "bottom",
+      legend.title=element_text(size=10, face="bold",color="black"),
+      legend.text=element_text(size=10, face="bold",color="black")
+    )
+
+pest_plot
+
+```
+
+## Combine plots together
+```{r}
+chemical_plot<- ggarrange(PFAS_plot, phtha_plot,pest_plot,
+                          nrow = 3, ncol = 1,
+                          common.legend = TRUE,
+                          legend = "bottom") 
+
+chemical_plot
+
+```
+
+
+
