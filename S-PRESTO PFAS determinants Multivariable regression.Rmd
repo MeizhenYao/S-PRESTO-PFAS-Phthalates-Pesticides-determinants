@@ -64,6 +64,7 @@ library(yaml)
 library(rmarkdown)
 library(officer)
 library(scales)
+library(lme4)
 
 # import data (change the path to the location where you save the dataset)
 PFAS<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
