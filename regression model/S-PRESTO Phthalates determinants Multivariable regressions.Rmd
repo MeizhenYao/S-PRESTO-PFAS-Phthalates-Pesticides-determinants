@@ -110,8 +110,15 @@ phtha_log$pcv1_parity_recat<- factor(phtha_log$pcv1_parity_recat,
 phtha_log$age_at_recruitment_cat <- factor(phtha_log$age_at_recruitment_cat,
                                            levels=c("Age first tertile","Age second tertile","Age third tertile"))
 
+phtha_log$Styrofoam_boxes<- factor(phtha_log$Styrofoam_boxes,
+                                        levels = c("No", "Yes"))
+phtha_log$Plastic_boxes<- factor(phtha_log$Plastic_boxes,
+                                        levels = c("No", "Yes"))
+phtha_log$Canned<- factor(phtha_log$Canned,
+                               levels = c("No", "Yes"))
 
 
+## phthalates information
 phtha<- c('adjusted_MEP_log','adjusted_MCPP_log','adjusted_MBZP_log','adjusted_MBP_log','adjusted_MIBP_log','adjusted_MEHP_log','adjusted_MEOHP_log','adjusted_MEHHP_log','adjusted_MECPP_log','adjusted_MCIOP_log','adjusted_MCINP_log','adjusted_MEOHTP_log','adjusted_MEHHTP_log','adjusted_MECPTP_log')
 
 str(phtha_log)
@@ -474,6 +481,154 @@ tabel
 
 ```
 
+### Styrofoam boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_mixreg1 <-
+  lapply(phtha, function(x){
+    
+    lmer(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat+ (1 | Subject_ID), 
+                           list(i = as.name(x))),
+      data = phtha_log)
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_mixreg1_coefs <- lapply(phtha_mixreg1, tidy, conf.int = T)
+names(phtha_mixreg1_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_mixreg1_coefs_data1 <- bind_rows(phtha_mixreg1_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+### Plastic boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_mixreg1 <-
+  lapply(phtha, function(x){
+    
+    lmer(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat+ (1 | Subject_ID), 
+                           list(i = as.name(x))),
+      data = phtha_log)
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_mixreg1_coefs <- lapply(phtha_mixreg1, tidy, conf.int = T)
+names(phtha_mixreg1_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_mixreg1_coefs_data1 <- bind_rows(phtha_mixreg1_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+### Canned
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_mixreg1 <-
+  lapply(phtha, function(x){
+    
+    lmer(formula = substitute(i ~ Canned + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat+ (1 | Subject_ID), 
+                           list(i = as.name(x))),
+      data = phtha_log)
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_mixreg1_coefs <- lapply(phtha_mixreg1, tidy, conf.int = T)
+names(phtha_mixreg1_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_mixreg1_coefs_data1 <- bind_rows(phtha_mixreg1_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_mixreg1_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+
 
 # Linear regression models
 ## pcv2
@@ -834,6 +989,158 @@ tabel
 
 ```
 
+#### Styrofoam boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pcv2 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pcv2_coefs <- lapply(phtha_multireg1_pcv2, tidy, conf.int = T)
+names(phtha_multireg1_pcv2_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pcv2_coefs_data1 <- bind_rows(phtha_multireg1_pcv2_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+#### Plastic boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pcv2 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pcv2_coefs <- lapply(phtha_multireg1_pcv2, tidy, conf.int = T)
+names(phtha_multireg1_pcv2_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pcv2_coefs_data1 <- bind_rows(phtha_multireg1_pcv2_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+#### Canned
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pcv2 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Canned + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pcv2_coefs <- lapply(phtha_multireg1_pcv2, tidy, conf.int = T)
+names(phtha_multireg1_pcv2_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pcv2_coefs_data1 <- bind_rows(phtha_multireg1_pcv2_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pcv2_coefs_data <- phtha_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pcv2_coefs_data$phtha_parent<- factor(phtha_multireg1_pcv2_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pcv2_coefs_data<- phtha_multireg1_pcv2_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pcv2_coefs_data$sig<- ifelse(phtha_multireg1_pcv2_coefs_data$conf.low >0 & phtha_multireg1_pcv2_coefs_data$conf.high >0 | phtha_multireg1_pcv2_coefs_data$conf.low <0 & phtha_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pcv2_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+```
+
+
+
 
 ## pgv3
 ```{r}
@@ -1151,6 +1458,153 @@ phtha_multireg1_pgv3 <-
   lapply(phtha, function(x){
     
     glm(formula = substitute(i ~ vegetable_SF_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pgv3,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pgv3_coefs <- lapply(phtha_multireg1_pgv3, tidy, conf.int = T)
+names(phtha_multireg1_pgv3_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pgv3_coefs_data1 <- bind_rows(phtha_multireg1_pgv3_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+```
+
+#### Styrofoam boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pgv3 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pgv3,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pgv3_coefs <- lapply(phtha_multireg1_pgv3, tidy, conf.int = T)
+names(phtha_multireg1_pgv3_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pgv3_coefs_data1 <- bind_rows(phtha_multireg1_pgv3_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+```
+
+#### Plastic boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pgv3 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = phtha_log_pgv3,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+phtha_multireg1_pgv3_coefs <- lapply(phtha_multireg1_pgv3, tidy, conf.int = T)
+names(phtha_multireg1_pgv3_coefs) <- phtha
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+phtha_multireg1_pgv3_coefs_data1 <- bind_rows(phtha_multireg1_pgv3_coefs, .id = "phtha")
+
+
+## subset estimates and CI for _only the biomarkers_
+phtha_multireg1_pgv3_coefs_data <- phtha_multireg1_pgv3_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(phtha, term, Estimate, conf.low, conf.high) %>% 
+                           inner_join(phtha_info, by="phtha") 
+
+phtha_multireg1_pgv3_coefs_data$phtha_parent<- factor(phtha_multireg1_pgv3_coefs_data$phtha_parent,
+                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
+phtha_multireg1_pgv3_coefs_data<- phtha_multireg1_pgv3_coefs_data %>% 
+                           arrange(phtha_parent, desc(phtha_group))
+
+phtha_multireg1_pgv3_coefs_data$sig<- ifelse(phtha_multireg1_pgv3_coefs_data$conf.low >0 & phtha_multireg1_pgv3_coefs_data$conf.high >0 | phtha_multireg1_pgv3_coefs_data$conf.low <0 & phtha_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(phtha_multireg1_pgv3_coefs_data, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+```
+
+#### Canned
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+phtha_multireg1_pgv3 <-
+  lapply(phtha, function(x){
+    
+    glm(formula = substitute(i ~ Canned + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
                            list(i = as.name(x))),
       data = phtha_log_pgv3,
       family = gaussian())
