@@ -183,8 +183,9 @@ Pesticides$pcv1_ever_drink_alcohol<- factor(Pesticides$pcv1_ever_drink_alcohol,
 ```{r}
 demo_table <- Phthalates %>%
     filter(Timepoint=="pcv2") %>% 
-    select(age_at_recruitment, pcv1_highest_education_completed_recat,ethnicity_specified_recat, pcv1_household_income_recat, pcv1_parity_recat, TotalFish, Fast_food, fruit, vegetable, vegetable_boil, vegetable_SF) %>%
-    tbl_summary(missing_text = "Missing", 
+    select(age_at_recruitment, pcv1_highest_education_completed_recat,ethnicity_specified_recat, pcv1_household_income_recat, pcv1_parity_recat, TotalFish, Fast_food, fruit, vegetable, vegetable_boil, vegetable_SF, Styrofoam_boxes, Styrofoam_boxes_freq_mean,Plastic_boxes, Plastic_boxes_freq_mean, Canned, Canned_freq_mean) %>%
+    tbl_summary(type =  list(Styrofoam_boxes ~ "categorical", Plastic_boxes ~ "categorical", Canned ~ "categorical", Canned_freq_mean ~"continuous"),
+                missing_text = "Missing", 
                 digits = everything() ~ 2
                 ) %>%
     bold_labels()

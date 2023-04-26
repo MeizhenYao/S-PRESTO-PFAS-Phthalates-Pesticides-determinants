@@ -81,7 +81,11 @@ PFAS_log <- PFAS %>%
             fruit_sc = (fruit - mean(fruit))/sd(fruit),
             vegetable_sc = (vegetable - mean(vegetable))/sd(vegetable),
             vegetable_boil_sc = (vegetable_boil - mean(vegetable_boil))/sd(vegetable_boil),
-            vegetable_SF_sc = (vegetable_SF - mean(vegetable_SF))/sd(vegetable_SF))
+            vegetable_SF_sc = (vegetable_SF - mean(vegetable_SF))/sd(vegetable_SF),
+            Styrofoam_boxes_freq_mean_sc = (Styrofoam_boxes_freq_mean - mean(Styrofoam_boxes_freq_mean))/sd(Styrofoam_boxes_freq_mean),
+            Plastic_boxes_freq_mean_sc = (Plastic_boxes_freq_mean - mean(Plastic_boxes_freq_mean))/sd(Plastic_boxes_freq_mean),
+            Canned_freq_mean_sc = (Canned_freq_mean - mean(Canned_freq_mean))/sd(Canned_freq_mean)
+            )
 
 ## numeric
 PFAS_log$PFHpA_bi<- PFAS_log$PFHpA_Comment
@@ -90,11 +94,17 @@ for(i in 1:nrow(PFAS_log)){
   else if (PFAS_log$PFHpA_Comment[i]==0){PFAS_log$PFHpA_bi[i]<-1}
 }
 
+PFAS_log$PFHpA_bi<- factor(PFAS_log$PFHpA_bi,
+                           levels = c(0,1))
+
 PFAS_log$PFDA_bi<- PFAS_log$PFDA_Comment
 for(i in 1:nrow(PFAS_log)){
   if ( PFAS_log$PFDA_Comment[i]==37){PFAS_log$PFDA_bi[i]<-0}
   else if (PFAS_log$PFDA_Comment[i]==0){PFAS_log$PFDA_bi[i]<-1}
 }
+
+PFAS_log$PFDA_bi<- factor(PFAS_log$PFDA_bi,
+                          levels = c(0,1))
 
 PFAS_log$PFHpS_bi<- PFAS_log$PFHpS_Comment
 for(i in 1:nrow(PFAS_log)){
@@ -102,6 +112,8 @@ for(i in 1:nrow(PFAS_log)){
   else if (PFAS_log$PFHpS_Comment[i]==0){PFAS_log$PFHpS_bi[i]<-1}
 }
 
+PFAS_log$PFHpS_bi<- factor(PFAS_log$PFHpS_bi,
+                           levels = c(0,1))
 
 ## covariates
 PFAS_log$ethnicity_specified_recat<- factor(PFAS_log$ethnicity_specified_recat,
@@ -198,6 +210,11 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+
+######## extract results
+# write_csv(PFAS_multireg1_coefs_data, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_model1_raw.csv")
+
+
 ```
 
 ## model2: one dietary factor + sociodemographic factors
@@ -251,6 +268,10 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+
+######## extract results
+fish<- PFAS_multireg1_coefs_data %>% 
+       filter(term == "TotalFish_sc")
 ```
 
 
@@ -304,6 +325,10 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+######## extract results
+fast_food<- PFAS_multireg1_coefs_data %>% 
+       filter(term == "Fast_food_sc")
+
 ```
 
 ## Fruit
@@ -355,6 +380,12 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
         
 
 tabel
+
+
+
+######## extract results
+fruit<- PFAS_multireg1_coefs_data %>% 
+        filter(term == "fruit_sc")
 
 ```
 
@@ -409,6 +440,10 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+
+######## extract results
+vegetable<- PFAS_multireg1_coefs_data %>% 
+        filter(term == "vegetable_sc")
 ```
 
 ## Vegetable boil
@@ -461,6 +496,9 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+######## extract results
+vegetable_boil<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "vegetable_boil_sc")
 ```
 
 ## Vegetable stir fried
@@ -512,6 +550,10 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
         
 
 tabel
+
+######## extract results
+vegetable_SF<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "vegetable_SF_sc")
 
 ```
 
@@ -566,7 +608,66 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+######## extract results
+Styrofoam_boxes<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "Styrofoam_boxesYes")
 ```
+
+## Styrofoam boxes mean frequency
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+Styrofoam_boxes_freq<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "Styrofoam_boxes_freq_mean_sc")
+```
+
 
 ## Plastic boxes
 ```{r, message=FALSE,warning=FALSE}
@@ -618,6 +719,64 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+######## extract results
+Plastic_boxes<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "Plastic_boxesYes")
+```
+
+## Plastic boxes mean frequency
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+Plastic_boxes_freq<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "Plastic_boxes_freq_mean_sc")
 ```
 
 ## Canned
@@ -670,8 +829,87 @@ tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name
 
 tabel
 
+######## extract results
+Canned<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "CannedYes")
 ```
 
+## Canned mean frequency
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Canned_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Canned_freq_mean_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat +pcv1_parity_recat, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
 
 
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+Canned_freq<- PFAS_multireg1_coefs_data %>% 
+            filter(term == "Canned_freq_mean_sc")
+```
+
+```{r}
+PFAS_model2<- rbind(fish,
+                    fast_food,
+                    fruit,
+                    vegetable,
+                    vegetable_boil,
+                    vegetable_SF,
+                    Styrofoam_boxes,
+                    Styrofoam_boxes_freq,
+                    Plastic_boxes,
+                    Plastic_boxes_freq,
+                    Canned,
+                    Canned_freq)
+
+
+######## extract results
+# write_csv(PFAS_model2, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_model2_raw.csv")
+
+
+
+
+```
 

@@ -139,7 +139,7 @@ p2 <- (ggplot(phtha_long, aes(y=reorder(Chemicals, mean), x=value,fill=Group, al
          stat_summary(fun ="mean", geom="bar", width = 0.7, position=position_dodge(), size=1)+
          stat_summary(geom = "errorbar", fun.data = mean_cl_boot, width=.2, position=position_dodge(.8), size=0.8)+
          scale_fill_manual(drop = FALSE,
-                           values = c( "#AA4414", "#41553A",  "#6E3F2B", "#EDCAA0", "#B3686F"),
+                           values = c( "#E3882F", "#1B7C3D",  "#8E549E", "#C52A20", "#545454"),
                            labels = c("LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
          scale_alpha_manual(values = c(0.6, 1), labels = c("Preconception", "Pregnancy"),limits = rev(levels(phtha_long$Timepoint)))+
          labs(y ="",x = "Mean Concentrations",
@@ -218,7 +218,7 @@ p3 <- (ggplot(pest_long, aes(y=reorder(Chemicals, mean), x=value,fill=Group, alp
          stat_summary(fun ="mean", geom="bar", width = 0.7, position=position_dodge(), size=1)+
          stat_summary(geom = "errorbar", fun.data = mean_cl_boot, width=.2, position=position_dodge(.8), size=0.8)+
          scale_fill_manual(drop = FALSE,
-                           values = c( "#AA4414", "#41553A",  "#6E3F2B", "#EDCAA0", "#B3686F"),
+                           values = c( "#E3882F", "#1B7C3D",  "#8E549E", "#545454", "#C52A20"),
                            labels = c("LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
          scale_alpha_manual(values = c(0.6, 1), labels = c("Preconception", "Pregnancy"),limits = rev(levels(pest_long$Timepoint)))+
          labs(y ="",x = "Mean Concentrations",
@@ -308,7 +308,7 @@ ggp_table$widths <- unit(rep(1, ncol(ggp_table)), "null")
 ggp_table$heights <- unit(rep(1, nrow(ggp_table)), "null")
 
 table<- ggplot() +
-        annotation_custom(ggp_table, size = 9) + 
+        annotation_custom(ggp_table) + 
         theme()
 
 
