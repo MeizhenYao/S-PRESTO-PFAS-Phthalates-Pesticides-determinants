@@ -129,7 +129,7 @@ phtha_long$Chemicals<- factor(phtha_long$Chemicals,
                               labels = c('MEP','MCPP','MBZP','MBP','MIBP','MEHP','MEOHP','MEHHP','MECPP','MCIOP','MCINP','MEHTP','MEOHTP','MEHHTP','MECPTP'))
 
 phtha_long$Group<- factor(phtha_long$Group,
-                           levels = c("LMWPs", "HMWPs", "PYR metabolites", "OC pesticides", "OP pesticides"))
+                           levels = c("PFAS", "LMWPs", "HMWPs", "PYR metabolites", "OC pesticides", "OP pesticides"))
 
 phtha_long$Parent<- factor(phtha_long$Parent,
                           levels = c("Diethyl\nphthalate", "Di-iso-butyl\nphthalate", "Di-n-butyl\nphthalate", "Di-2-ethylhexyl\nterephthalate", "Di-iso-nonyl\nphthalate", "Di-2-ethylhexyl\nphthalate", "Butylbenzyl\nphthalate", "Di-isodecyl\nphthalate"))
@@ -139,8 +139,8 @@ p2 <- (ggplot(phtha_long, aes(y=reorder(Chemicals, mean), x=value,fill=Group, al
          stat_summary(fun ="mean", geom="bar", width = 0.7, position=position_dodge(), size=1)+
          stat_summary(geom = "errorbar", fun.data = mean_cl_boot, width=.2, position=position_dodge(.8), size=0.8)+
          scale_fill_manual(drop = FALSE,
-                           values = c( "#E3882F", "#1B7C3D",  "#8E549E", "#C52A20", "#545454"),
-                           labels = c("LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
+                           values = c("#2E5FA1", "#E3882F", "#1B7C3D",  "#8E549E", "#C52A20", "#545454"),
+                           labels = c("PFAS", "LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
          scale_alpha_manual(values = c(0.6, 1), labels = c("Preconception", "Pregnancy"),limits = rev(levels(phtha_long$Timepoint)))+
          labs(y ="",x = "Mean Concentrations",
               title = "Phthalates") + 
@@ -207,7 +207,7 @@ pest_long$Chemicals<- factor(pest_long$Chemicals,
 
 
 pest_long$Group<- factor(pest_long$Group,
-                          levels = c("LMWPs", "HMWPs", "PYR metabolites", "OC pesticides", "OP pesticides"))
+                          levels = c("PFAS", "LMWPs", "HMWPs", "PYR metabolites", "OC pesticides", "OP pesticides"))
 
 pest_long$Timepoint<- factor(pest_long$Timepoint,
                          levels = c("pcv2", "pgv3"))
@@ -218,8 +218,8 @@ p3 <- (ggplot(pest_long, aes(y=reorder(Chemicals, mean), x=value,fill=Group, alp
          stat_summary(fun ="mean", geom="bar", width = 0.7, position=position_dodge(), size=1)+
          stat_summary(geom = "errorbar", fun.data = mean_cl_boot, width=.2, position=position_dodge(.8), size=0.8)+
          scale_fill_manual(drop = FALSE,
-                           values = c( "#E3882F", "#1B7C3D",  "#8E549E", "#545454", "#C52A20"),
-                           labels = c("LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
+                           values = c("#2E5FA1", "#E3882F", "#1B7C3D",  "#8E549E", "#545454", "#C52A20"),
+                           labels = c("PFAS", "LMWPs", "HMWPs" ,"PYR metabolites", "OC pesticides", "OP pesticides"))+
          scale_alpha_manual(values = c(0.6, 1), labels = c("Preconception", "Pregnancy"),limits = rev(levels(pest_long$Timepoint)))+
          labs(y ="",x = "Mean Concentrations",
               title = "Pesticides") +
