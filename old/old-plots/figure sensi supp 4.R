@@ -17,7 +17,7 @@ library(blme)
 library(glmnet)
 library(ggh4x)
 #------------------------------------------------------------import dataset
-figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model1.csv")
+figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model1_dHOD.csv")
 
 #------------------------------------------------------------reformat variables
 figure3_data$phtha_parent<- factor(figure3_data$phtha_parent,
@@ -25,15 +25,15 @@ figure3_data$phtha_parent<- factor(figure3_data$phtha_parent,
 
 
 figure3_data<- figure3_data %>% 
-               mutate(parent = case_when(phtha_parent == "DEP" ~ "Diethyl\nphthalate",
-                                         phtha_parent == "DiBP" ~ "Di-iso-butyl\nphthalate",
-                                         phtha_parent == "DBP" ~ "Di-n-butyl\nphthalate",
-                                         phtha_parent == "DEHTP" ~ "Di-2-ethylhexyl\nterephthalate",
-                                         phtha_parent == "DiNP" ~ "Di-iso-nonyl\nphthalate",
-                                         phtha_parent == "DEHP" ~ "Di-2-ethylhexyl\nphthalate",
-                                         phtha_parent == "BBzP" ~ "Butylbenzyl\nphthalate",
-                                         phtha_parent == "DiDP" ~ "Di-isodecyl\nphthalate"
-               ))
+  mutate(parent = case_when(phtha_parent == "DEP" ~ "Diethyl\nphthalate",
+                            phtha_parent == "DiBP" ~ "Di-iso-butyl\nphthalate",
+                            phtha_parent == "DBP" ~ "Di-n-butyl\nphthalate",
+                            phtha_parent == "DEHTP" ~ "Di-2-ethylhexyl\nterephthalate",
+                            phtha_parent == "DiNP" ~ "Di-iso-nonyl\nphthalate",
+                            phtha_parent == "DEHP" ~ "Di-2-ethylhexyl\nphthalate",
+                            phtha_parent == "BBzP" ~ "Butylbenzyl\nphthalate",
+                            phtha_parent == "DiDP" ~ "Di-isodecyl\nphthalate"
+  ))
 
 figure3_data$parent<- factor(figure3_data$parent,
                              levels = c("Diethyl\nphthalate", "Di-iso-butyl\nphthalate", "Di-n-butyl\nphthalate", "Di-2-ethylhexyl\nterephthalate", "Di-iso-nonyl\nphthalate", "Di-2-ethylhexyl\nphthalate", "Butylbenzyl\nphthalate", "Di-isodecyl\nphthalate"))
@@ -74,8 +74,8 @@ figure3_1<- ggplot(figure3_data,aes(y=term)) +
   geom_point(size=1.8,aes(x=Estimate)) +
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
   scale_color_manual(drop = FALSE,
-                    values = c( "#E3882F", "#1B7C3D"),
-                    labels = c("LMWPs", "HMWPs"))+
+                     values = c( "#E3882F", "#1B7C3D"),
+                     labels = c("LMWPs", "HMWPs"))+
   facet_nested(covariates~parent+phtha, scale="free", space = "free_y", nest_line = element_line(colour = "blue"))+
   xlab(expression(beta ~ (`95% CI`)))+
   ylab("Covariates")+
@@ -90,7 +90,7 @@ figure3_1<- ggplot(figure3_data,aes(y=term)) +
         strip.text.y = element_text(colour = "black", face = "bold",size=10,angle=0))   
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure2.2.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure4.jpeg",
      units="in", width=22, height=12, res=500)
 
 

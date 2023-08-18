@@ -17,13 +17,10 @@ library(blme)
 library(glmnet)
 library(ggh4x)
 #------------------------------------------------------------import dataset
-figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/pest_model2.csv")
+figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model2_dHOD.csv")
 
 #------------------------------------------------------------reformat variables
-figure4_data$PEST<- factor(figure4_data$PEST,
-                           levels = c('DEP', 'DMP', 'DETP', 'DMTP', 'TCP', 'PNP', 'DEDP', 'DMDP', 'PBA', 'TRANS DCCA', 'CIS DCCA'))
-
-figure4_data$covariates<- factor(figure4_data$term,
+figure3_data$covariates<- factor(figure3_data$term,
                                  levels = c("Parity",
                                             "Total Fish Intake", 
                                             "Fast food Intake",
@@ -33,7 +30,7 @@ figure4_data$covariates<- factor(figure4_data$term,
                                             "Plastic Boxes Usage ",
                                             "Occupation"))
 
-figure4_data$level<- factor(figure4_data$level,
+figure3_data$level<- factor(figure3_data$level,
                             levels = c("0",
                                        ">= 1",
                                        'No',
@@ -45,23 +42,46 @@ figure4_data$level<- factor(figure4_data$level,
                                        ""
                             ))
 
-figure4_data$Group<- factor(figure4_data$Group,
-                            levels = c("OP pesticides", "PYR metabolites"))
+
+figure3_data$phtha_parent<- factor(figure3_data$phtha_parent,
+                                   levels = c("DEP", "DiBP", "DBP", "DEHTP", "DiNP", "DEHP", "BBzP", "DiDP"))
+
+
+figure3_data<- figure3_data %>% 
+  mutate(parent = case_when(phtha_parent == "DEP" ~ "Diethyl\nphthalate",
+                            phtha_parent == "DiBP" ~ "Di-iso-butyl\nphthalate",
+                            phtha_parent == "DBP" ~ "Di-n-butyl\nphthalate",
+                            phtha_parent == "DEHTP" ~ "Di-2-ethylhexyl\nterephthalate",
+                            phtha_parent == "DiNP" ~ "Di-iso-nonyl\nphthalate",
+                            phtha_parent == "DEHP" ~ "Di-2-ethylhexyl\nphthalate",
+                            phtha_parent == "BBzP" ~ "Butylbenzyl\nphthalate",
+                            phtha_parent == "DiDP" ~ "Di-isodecyl\nphthalate"
+  ))
+
+figure3_data$parent<- factor(figure3_data$parent,
+                             levels = c("Diethyl\nphthalate", "Di-iso-butyl\nphthalate", "Di-n-butyl\nphthalate", "Di-2-ethylhexyl\nterephthalate", "Di-iso-nonyl\nphthalate", "Di-2-ethylhexyl\nphthalate", "Butylbenzyl\nphthalate", "Di-isodecyl\nphthalate"))
+
+
+figure3_data$phtha<- factor(figure3_data$phtha,
+                            levels = c('MEP','MIBP','MBP','MCPP','MECPTP','MEHHTP','MEOHTP','MCIOP','MECPP','MEHHP','MEOHP','MEHP','MCINP','MBZP'))
+
+
+figure3_data$Group<- factor(figure3_data$phtha_group,
+                            levels = c("LMWPs", "HMWPs"))
 
 
 
-figure4_data$conf.low<- as.numeric(figure4_data$conf.low)
-figure4_data$conf.high<- as.numeric(figure4_data$conf.high)
-
-
-figure4_2<- ggplot(figure4_data,aes(y=level)) +
+figure3_data$conf.low<- as.numeric(figure3_data$conf.low)
+figure3_data$conf.high<- as.numeric(figure3_data$conf.high)
+# 100*(exp(conf.low)-1)
+figure3_2<- ggplot(figure3_data,aes(y=level)) +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
   geom_point(size=1.8,aes(x=Estimate)) +
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
   scale_color_manual(drop = FALSE,
-                     values = c("#C52A20", "#8E549E"),
-                     labels = c("OP pesticides", "PYR metabolites"))+
-  facet_grid(covariates~PEST, scale="free", space = "free_y")+
+                     values = c( "#E3882F", "#1B7C3D"),
+                     labels = c("LMWPs", "HMWPs"))+
+  facet_nested(covariates~parent + phtha, scale="free", space = "free_y", nest_line = element_line(colour = "blue"))+
   xlab(expression(beta ~ (`95% CI`)))+
   ylab("Covariates")+
   theme_bw()+
@@ -76,11 +96,10 @@ figure4_2<- ggplot(figure4_data,aes(y=level)) +
         strip.text.y = element_text(colour = "black", face = "bold",size=10,angle=0))   
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure3.3.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure5.jpeg",
      units="in", width=22, height=12, res=500)
 
 
-figure4_2
-
+figure3_2
 
 dev.off()

@@ -1,0 +1,486 @@
+---
+title: "S-PRESTO FFQ general qx"
+author: "Meizhen Yao"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    theme: united
+    highlight: tango
+    df_print: paged
+    fig_caption: yes
+    fig_height: 7
+    fig_width: 10
+    number_sections: yes
+    toc: yes
+    toc_float:
+      collapsed: yes
+      smooth_scroll: yes
+    self_contained: yes
+    code_folding: hide
+    toc_depth: 6
+header-includes: \usepackage{multirow}
+editor_options: 
+  chunk_output_type: console
+---
+
+<style type="text/css">
+body{
+  /*font-family: 89;*/
+  font-size: 12pt;
+}
+</style>
+
+
+```{r setup, include=FALSE}
+options(digits = 4)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,cache=F,warning = FALSE)
+# suppress warning messages for final rendering
+old.warn <- getOption("warn")
+options(qwraps2_markup = "markdown")
+
+```
+
+
+
+```{r, include=FALSE}
+library(data.table)  
+library(tidyverse)
+library(readxl)
+library(readr)
+library(mice)
+library(anthro)
+library(writexl)
+library(gtsummary)
+library(cluster)
+library(pheatmap)
+library(poLCA)  
+library(tidyverse)
+library("FactoMineR")
+library("factoextra")
+
+
+#-------------------------------------------------------import data set
+whole_cohort<-  read_csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/input/for paper/whole_cohort_20230316.csv")
+
+FFQ<- read_csv("~/Projects/S-PRESTO/input/for paper/chemical_paper/FFQ.csv")
+
+
+#-------------------------------------------------------data preparation
+# -------------------- FFQ qx
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ1_Place_BF_adjust = case_when(is.na(GQ1_Place_BF) == TRUE ~ NA,
+                                                      GQ1_Place_BF == "0 and 1" ~ "0, 1",
+                                                      GQ1_Place_BF == "0,1" ~ "0, 1",
+                                                      GQ1_Place_BF == "3,5" ~ "3, 5",
+                                                      GQ1_Place_BF == "6,5" ~ "5,6",
+                                                      .default = GQ1_Place_BF))
+
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ2_Place_Lunch_adjust = case_when(is.na(GQ2_Place_Lunch) == TRUE ~ NA,
+                                                         GQ2_Place_Lunch == "0,5" ~ "0, 5",
+                                                         GQ2_Place_Lunch == "1,3" ~ "1, 3",
+                                                         GQ2_Place_Lunch == "1,5" ~ "1, 5",
+                                                         GQ2_Place_Lunch == "1,3,5" ~ "1, 3, 5",
+                                                         GQ2_Place_Lunch == "2,5" ~ "2, 5",
+                                                         GQ2_Place_Lunch == "3 and 5" ~ "3,5",
+                                                         GQ2_Place_Lunch == "8 (fasting mo)nth" ~ "8, fasting month",
+                                                         .default = GQ2_Place_Lunch))
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ3_Place_Dinner_adjust = case_when(is.na(GQ3_Place_Dinner) == TRUE ~ NA,
+                                                         GQ3_Place_Dinner == "0 and 5" ~ "0, 5",
+                                                         GQ3_Place_Dinner == "0,5" ~ "0, 5",
+                                                         GQ3_Place_Dinner == "0,2" ~ "0, 2",
+                                                         GQ3_Place_Dinner == "0,2,5" ~ "0, 2, 5",
+                                                         GQ3_Place_Dinner == "0,5,2" ~ "0, 2, 5",
+                                                         GQ3_Place_Dinner == "0,,5,6" ~ "0, 5, 6",
+                                                         GQ3_Place_Dinner == "0,5,6" ~ "0, 5, 6",
+                                                         GQ3_Place_Dinner == "2,5," ~ "2,5",
+                                                         GQ3_Place_Dinner == "2,5,6" ~ "2, 5, 6",
+                                                         GQ3_Place_Dinner == "2,5,6,0" ~ "0,2,5,6",
+                                                         GQ3_Place_Dinner == "5 and 2" ~ "2,5",
+                                                         GQ3_Place_Dinner == "5,6" ~ "5, 6",
+                                                         .default = GQ3_Place_Dinner))
+
+
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ1_Place_BF_new_v4 = case_when(is.na(GQ1_Place_BF_adjust) == TRUE ~ NA,
+                                                   GQ1_Place_BF_adjust %in% c("0", "0, 8", "8", "8 (fasting month)") ~ 1,
+                                                   GQ1_Place_BF_adjust %in% c("2", "3", "3, 5", "4", "5", "7, brunch-outside", "7, hotel", "0,3", "0,5") ~ 2,
+                                                  .default = 3))
+
+
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ2_Place_Lunch_new_v4 = case_when(is.na(GQ2_Place_Lunch_adjust) == TRUE ~ NA,
+                                                   GQ2_Place_Lunch_adjust %in% c("0", "8", "8, fasting month") ~ 1,
+                                                   GQ2_Place_Lunch_adjust %in% c("2", "3", "4", "5", "0,2", "0 and 3", "0, 3, 7, brunch (11am meal)", "0, 5", "2, 5", "2,3,5", "2,4,5", "3,5", "5,2", "7, brunch-outside","7: cook self since work has cooking facilities") ~ 2,
+                                                   .default = 3))
+
+
+whole_cohort<- whole_cohort %>% 
+               mutate(GQ3_Place_Dinner_new_v4 = case_when(is.na(GQ3_Place_Dinner_adjust) == TRUE ~ NA,
+                                                   GQ3_Place_Dinner_adjust %in% c("0", "7,Mother's place", "8") ~ 1,
+                                                   GQ3_Place_Dinner_adjust %in% c("2", "3", "4", "5", "0, 2", "0, 2, 5", "0, 5", "0,3", "2,5", "7, food stall", "7,office pantry") ~ 2,
+                                                   .default = 3))
+
+# 
+# 1:3,
+#                                        labels = 
+
+whole_cohort$GQ1_Place_BF_new_v4<- factor(whole_cohort$GQ1_Place_BF_new_v4,
+                                       levels = 1:3,
+                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+
+whole_cohort$GQ2_Place_Lunch_new_v4<- factor(whole_cohort$GQ2_Place_Lunch_new_v4,
+                                       levels = 1:3,
+                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+
+whole_cohort$GQ3_Place_Dinner_new_v4<- factor(whole_cohort$GQ3_Place_Dinner_new_v4,
+                                       levels = 1:3,
+                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+
+
+
+# -------------------------------------------------------restrict to blood sample & urine sample
+blood<- whole_cohort %>% 
+        filter(participation == 1)
+
+
+colnames(blood)[which(names(blood) == "GQ1_Place_BF_new_v4")] <- "Breakfast"
+colnames(blood)[which(names(blood) == "GQ2_Place_Lunch_new_v4")] <- "Lunch"
+colnames(blood)[which(names(blood) == "GQ3_Place_Dinner_new_v4")] <- "Dinner"
+
+urine<- whole_cohort %>% 
+        filter(urine_participation == 1)
+
+
+colnames(urine)[which(names(urine) == "GQ1_Place_BF_new_v4")] <- "Breakfast"
+colnames(urine)[which(names(urine) == "GQ2_Place_Lunch_new_v4")] <- "Lunch"
+colnames(urine)[which(names(urine) == "GQ3_Place_Dinner_new_v4")] <- "Dinner"
+
+```
+
+```{r}
+blood_table <- blood %>%
+    dplyr::select(Breakfast, Lunch, Dinner) %>%
+    tbl_summary(type = list(all_dichotomous() ~ "categorical"), 
+                missing_text = "Missing", 
+              digits = everything() ~ c(0, 1)) %>%
+    bold_labels()
+
+blood_table
+
+urine_table <- urine %>%
+    dplyr::select(Breakfast, Lunch, Dinner) %>%
+    tbl_summary(type = list(all_dichotomous() ~ "categorical"), 
+                missing_text = "Missing", 
+              digits = everything() ~ c(0, 1)) %>%
+    bold_labels()
+
+urine_table
+
+table<- tbl_merge(tbls =list(blood_table, urine_table), 
+                  tab_spanner= c("**Blood**", "**Urine**") )
+
+table
+
+
+
+```
+
+
+
+# MCA for FFQ general qx
+```{r}
+
+## data used in mca
+mca.data<- blood[, c('Breakfast', 'Lunch', 'Dinner')]
+summary(mca.data)
+
+
+## mca main function
+res.mca <- MCA(mca.data, graph = FALSE, method = "Burt")
+# print(res.mca)
+
+
+## visualization
+fviz_screeplot(res.mca, addlabels = TRUE, ylim = c(0, 45))
+
+## variables
+var <- get_mca_var(res.mca)
+
+### Contributions of rows to dimension 1
+fviz_contrib(res.mca, choice = "var", axes = 1, top = 15)
+### Contributions of rows to dimension 2
+fviz_contrib(res.mca, choice = "var", axes = 2, top = 15)
+### correlation between variables and dimensions
+# fviz_mca_var(res.mca, choice = "mca.cor",
+#              repel = TRUE)
+
+
+
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure6.jpeg",
+     units="in", width=12, height=12, res=500)
+
+
+fviz_mca_var(res.mca, repel = TRUE,
+             ggtheme= theme_minimal())
+
+dev.off()
+
+## individuals
+ind <- get_mca_ind(res.mca)
+
+# 
+# fviz_mca_ind(res.mca, repel = TRUE,
+#              ggtheme = theme_minimal())
+# 
+# fviz_mca_ind(res.mca, 
+#              label = "none", # hide individual labels
+#              habillage = "GQ1_Place_BF_new_v4", # color by groups 
+#              addEllipses = TRUE, ellipse.type = "confidence",
+#              ggtheme = theme_minimal()) 
+
+fviz_ellipses(res.mca, 1:3, geom = "point")
+
+# fviz_mca_biplot(res.mca,
+#                 ggtheme = theme_minimal())
+
+# 
+# 
+# res.desc <- dimdesc(res.mca, axes = c(1,2))
+# res.desc[[1]]
+
+summary(res.mca)
+
+
+mca_dim1<- ind$coord[,1]
+mca_dim2<- ind$coord[,2]
+
+FFQ$mca_dim1<- mca_dim1
+FFQ$mca_dim2<- mca_dim2
+
+
+```
+
+
+# PFAS vs FFQ MCA
+```{r}
+# import data (change the path to the location where you save the dataset)
+PFAS<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
+
+## log transformation
+PFAS_log <- PFAS %>%  
+            mutate(PFHxS_log=log2(PFHxS), 
+                   PFOS_Total_log=log2(PFOS_Total), 
+                   PFOA_Linear_log=log2(PFOA_Linear), 
+                   PFNA_log=log2(PFNA),
+            TotalFish_sc = (TotalFish - mean(TotalFish))/sd(TotalFish),
+            Fast_food_sc = (Fast_food - mean(Fast_food))/sd(Fast_food),
+            fruit_sc = (fruit - mean(fruit))/sd(fruit),
+            vegetable_sc = (vegetable - mean(vegetable))/sd(vegetable),
+            vegetable_boil_sc = (vegetable_boil - mean(vegetable_boil))/sd(vegetable_boil),
+            vegetable_SF_sc = (vegetable_SF - mean(vegetable_SF))/sd(vegetable_SF),
+            Styrofoam_boxes_freq_mean_sc = (Styrofoam_boxes_freq_mean - mean(Styrofoam_boxes_freq_mean))/sd(Styrofoam_boxes_freq_mean),
+            Plastic_boxes_freq_mean_sc = (Plastic_boxes_freq_mean - mean(Plastic_boxes_freq_mean))/sd(Plastic_boxes_freq_mean))
+
+## numeric
+PFAS_log$PFHpA_bi<- PFAS_log$PFHpA_Comment
+for(i in 1:nrow(PFAS_log)){
+  if ( PFAS_log$PFHpA_Comment[i]==37){PFAS_log$PFHpA_bi[i]<-0}
+  else if (PFAS_log$PFHpA_Comment[i]==0){PFAS_log$PFHpA_bi[i]<-1}
+}
+
+PFAS_log$PFHpA_bi<- factor(PFAS_log$PFHpA_bi,
+                           levels = c(0,1))
+
+PFAS_log$PFDA_bi<- PFAS_log$PFDA_Comment
+for(i in 1:nrow(PFAS_log)){
+  if ( PFAS_log$PFDA_Comment[i]==37){PFAS_log$PFDA_bi[i]<-0}
+  else if (PFAS_log$PFDA_Comment[i]==0){PFAS_log$PFDA_bi[i]<-1}
+}
+
+PFAS_log$PFDA_bi<- factor(PFAS_log$PFDA_bi,
+                          levels = c(0,1))
+
+PFAS_log$PFHpS_bi<- PFAS_log$PFHpS_Comment
+for(i in 1:nrow(PFAS_log)){
+  if ( PFAS_log$PFHpS_Comment[i]==37){PFAS_log$PFHpS_bi[i]<-0}
+  else if (PFAS_log$PFHpS_Comment[i]==0){PFAS_log$PFHpS_bi[i]<-1}
+}
+
+PFAS_log$PFHpS_bi<- factor(PFAS_log$PFHpS_bi,
+                           levels = c(0,1))
+
+## covariates
+PFAS_log$ethnicity_specified_recat<- factor(PFAS_log$ethnicity_specified_recat,
+                                            levels = c("Chinese","Malay","Indian"))
+
+PFAS_log$pcv1_highest_education_completed_recat<- factor(PFAS_log$pcv1_highest_education_completed_recat,
+                                           levels=c("University","Primary/Secondary/Post_secondary"))
+
+PFAS_log$pcv1_household_income_recat<- factor(PFAS_log$pcv1_household_income_recat,
+                                           levels=c("$6,376 and below","$6,377 - $11,293","$11,294 and above"))
+
+
+PFAS_log$pcv1_parity_recat<- factor(PFAS_log$pcv1_parity_recat,
+                                  levels=c("0",">= 1"))
+
+
+
+PFAS_log$age_at_recruitment_cat <- factor(PFAS_log$age_at_recruitment_cat,
+                                           levels=c("Age first tertile","Age second tertile","Age third tertile"))
+
+
+PFAS_log$Styrofoam_boxes<- factor(PFAS_log$Styrofoam_boxes,
+                                        levels = c("No", "Yes"))
+PFAS_log$Plastic_boxes<- factor(PFAS_log$Plastic_boxes,
+                                        levels = c("No", "Yes"))
+
+
+PFAS_log$packaging<- factor(PFAS_log$packaging,
+                            levels = c("Low-tendency packaging", "High-tendency packaging"))
+
+PFAS_log$occupation<- factor(PFAS_log$occupation,
+                            levels = c("Not working", "Office worker", "Health care worker", "Service worker & Outdoor worker"))
+
+
+## PFAS information
+PFAS_cont<- c('PFOS_Total_log', 'PFOA_Linear_log', 'PFNA_log', 'PFHxS_log')
+
+PFAS_bi<- c('PFDA_bi', 'PFHpA_bi', 'PFHpS_bi')
+
+PFAS_name<- c('PFOS_Total_log', 'PFOA_Linear_log', 'PFNA_log', 'PFHxS_log', 'PFDA_bi', 'PFHpA_bi', 'PFHpS_bi')
+
+beta<- c('beta', 'beta', 'beta', 'beta', 'log(OR)', 'log(OR)', 'log(OR)')
+PFAS_info<- data.frame(PFAS_name, 
+                       beta)
+
+
+
+```
+
+## FFQ mca dim1
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+
+    glm(formula = substitute(i ~ mca_dim1 + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat,
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+
+    glm(formula = substitute(i ~ mca_dim1 + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat,
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>%
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>%
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>%
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high)
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>%
+                            inner_join(PFAS_info, by="PFAS_name")
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>%
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box()
+
+
+tabel
+
+######## extract results
+mca_dim1<- PFAS_multireg1_coefs_data %>%
+            filter(term %in% c("mca_dim1"))
+```
+
+
+## FFQ mca dim2
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+
+    glm(formula = substitute(i ~ mca_dim2 + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat,
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+
+    glm(formula = substitute(i ~ mca_dim2 + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat,
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>%
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>%
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>%
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high)
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>%
+                            inner_join(PFAS_info, by="PFAS_name")
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>%
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box()
+
+
+tabel
+
+
+ ######## extract results -->
+mca_dim2<- PFAS_multireg1_coefs_data %>%
+            filter(term %in% c("mca_dim2"))
+
+``` 
+
+```{r}
+PFAS_FFQ_mca<- rbind(mca_dim1,
+                     mca_dim2)
+
+
+# ######## extract results
+# write_csv(PFAS_FFQ_mca, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_FFQ_mca.csv")
+```
+
+
+
+

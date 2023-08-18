@@ -613,65 +613,6 @@ write_csv(phtha_model2, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Doc
 ```
 
 
-## Final model
-### HWMP
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-phtha_mixreg1 <-
-  lapply(phtha, function(x){
-    
-    lmer(formula = substitute(i ~ pcv1_highest_education_completed_recat + fruit_sc + vegetable_sc + Styrofoam_boxes + (1 | Subject_ID),
-                           list(i = as.name(x))),
-      data = phtha_log)
-    
-  })
-
-## extract coefficients with confidence interval
-phtha_mixreg1_coefs <- lapply(phtha_mixreg1, tidy, conf.int = T)
-names(phtha_mixreg1_coefs) <- phtha
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-phtha_mixreg1_coefs_data1 <- bind_rows(phtha_mixreg1_coefs, .id = "phtha")
-
-
-## subset estimates and CI for _only the biomarkers_
-phtha_mixreg1_coefs_data <- phtha_mixreg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(phtha, term, Estimate, conf.low, conf.high) %>% 
-                           inner_join(phtha_info, by="phtha") 
-
-phtha_mixreg1_coefs_data$phtha_parent<- factor(phtha_mixreg1_coefs_data$phtha_parent,
-                          levels = c("DEP", "DiBP", "DBP", "DEHTP", "DEHP", "DiNP", "BBzP", "DiDP"))
-phtha_mixreg1_coefs_data<- phtha_mixreg1_coefs_data %>% 
-                           arrange(phtha_parent, desc(phtha_group))
-
-phtha_mixreg1_coefs_data$sig<- ifelse(phtha_mixreg1_coefs_data$conf.low >0 & phtha_mixreg1_coefs_data$conf.high >0 | phtha_mixreg1_coefs_data$conf.low <0 & phtha_mixreg1_coefs_data$conf.high <0, "*", NA )
-
-final_model3<- phtha_mixreg1_coefs_data %>% 
-                filter(phtha_group == "HMWPs")
-
-## put result into one table
-tabel<- flextable(as_grouped_data(final_model3, groups = c("phtha_group","phtha_parent","phtha"))) %>%          
-        color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-####### extract results
-# write_csv(final_model3, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/final_model3.csv")
-
-
-```
-
-
-
 # Linear regression models
 ## pcv2
 ```{r}
