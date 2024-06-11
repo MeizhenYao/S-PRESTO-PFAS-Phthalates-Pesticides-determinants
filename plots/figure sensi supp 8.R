@@ -17,19 +17,15 @@ library(blme)
 library(glmnet)
 library(ggh4x)
 #------------------------------------------------------------import dataset
-figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model2.csv")
+figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/final_model3.csv")
 
 #------------------------------------------------------------reformat variables
 
-figure2_data$term<- factor(figure2_data$term,
-                           levels = c("TotalFish_sc",
-                                      "Fast_food_sc",
+figure3_data$term<- factor(figure3_data$term,
+                           levels = c("pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary",
                                       "fruit_sc",
                                       "vegetable_sc",
-                                      "Styrofoam_boxesYes",
-                                      "Plastic_boxesYes",
-                                      "mca_dim1_catHigh-tendency-outside",
-                                      "mca_dim2_catHigh-tendency-packaging"
+                                      "Styrofoam_boxesYes"
                            ))
 
 figure3_data$covariates<- factor(figure3_data$term)
@@ -63,8 +59,6 @@ figure3_data$phtha<- factor(figure3_data$phtha,
                             labels = c('MEP','MIBP','MBP','MCPP','MECPTP','MEHHTP','MEOHTP','MCIOP','MECPP','MEHHP','MEOHP','MEHP','MCINP','MBZP'))
 
 
-figure3_data$Group<- factor(figure3_data$phtha_group,
-                            levels = c("LMWPs", "HMWPs"))
 
 
 
@@ -72,21 +66,14 @@ figure3_data$conf.low<- as.numeric(figure3_data$conf.low)
 figure3_data$conf.high<- as.numeric(figure3_data$conf.high)
 # 100*(exp(conf.low)-1)
 figure3_2<- ggplot(figure3_data,aes(y=term)) +
-  geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high), width=0.1,size=1, color = "#1B7C3D")+
   geom_point(size=1.8,aes(x=Estimate)) +
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+
   scale_x_continuous(labels = scales::number_format(accuracy = 0.1)) +
-  scale_y_discrete(labels = c("TotalFish_sc" = bquote('Total Fish'~Intake^a),
-                              "Fast_food_sc"= bquote('Fast Food'~Intake^a),
+  scale_y_discrete(labels = c("pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary" = bquote('Primary/Secondary/Post_secondary vs.'~University^a),
                               "fruit_sc" = bquote('Fruit'~Intake^a),
                               "vegetable_sc" = bquote('Total Vegetable'~Intake^a),
-                              "Styrofoam_boxesYes" = bquote('Styrofoam food container use: yes vs.'~no^a),
-                              "Plastic_boxesYes" = bquote('Plastic food container use: yes vs.'~no^a),
-                              "mca_dim1_catHigh-tendency-outside" = bquote('Eat out: high vs. low'~tendency^a),
-                              "mca_dim2_catHigh-tendency-packaging" = bquote('Consume packaged food: high vs. low'~tendency^a)))+ 
-  scale_color_manual(drop = FALSE,
-                     values = c( "#E3882F", "#1B7C3D"),
-                     labels = c("LMWPs", "HMWPs"))+
+                              "Styrofoam_boxesYes" = bquote('Styrofoam food container use: yes vs.'~no^a)))+ 
   facet_nested(covariates~parent + phtha, scale="free", space = "free_y", nest_line = element_line(colour = "blue"))+
   xlab(expression(beta ~ (`95% CI`)))+
   ylab("Covariates")+
@@ -103,7 +90,7 @@ figure3_2<- ggplot(figure3_data,aes(y=term)) +
         strip.text.y = element_blank())    
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure6.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/supp_figure8.jpeg",
      units="in", width=22, height=10, res=600)
 
 

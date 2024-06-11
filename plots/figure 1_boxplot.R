@@ -346,7 +346,8 @@ pest_long$Chemicals<- factor(pest_long$Chemicals,
 
 
 pest_long$Group<- factor(pest_long$Group,
-                         levels = c("PFAS", "LMWPs", "HMWPs", "OP pesticides", "PYR metabolites", "OC pesticides"))
+                         levels = c("PFAS", "LMWPs", "HMWPs", "OP pesticides", "PYR metabolites", "OC pesticides"),
+                         labels = c("PFAS", "LMWPs", "HMWPs", "OP pesticides", "Pyrethroids", "OC pesticides"))
 
 pest_long$Timepoint<- factor(pest_long$Timepoint,
                              levels = c("pcv2", "pgv3"))
@@ -358,7 +359,7 @@ p3 <- (ggplot(pest_long, aes(y=Chemicals, x=log2(value),color=Group, fill=Timepo
          scale_y_discrete(limits = rev(levels(pest_long$Chemicals)))+
          scale_color_manual(drop = FALSE,
                             values = c("#2E5FA1", "#E3882F", "#1B7C3D", "#C52A20" , "#8E549E", "#545454"),
-                            labels = c("PFAS", "LMWPs", "HMWPs" , "OP pesticides", "PYR metabolites", "OC pesticides"))+
+                            labels = c("PFAS", "LMWPs", "HMWPs" , "OP pesticides", "Pyrethroids", "OC pesticides"))+
          scale_fill_manual(drop = FALSE,
                            values = c( "#FDFEFE", "#909497"),
                            labels = c("Preconception", "Pregnancy"),

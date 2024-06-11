@@ -21,30 +21,37 @@ figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Do
 
 #------------------------------------------------------------reformat variables
 figure4_data$PEST<- factor(figure4_data$PEST,
-                            levels = c('DEP', 'DMP', 'DETP', 'DMTP', 'TCP', 'PNP', 'DEDP', 'DMDP', 'PBA', 'TRANS DCCA', 'CIS DCCA'))
+                          levels = c('adjusted_DEP_log', 'adjusted_DMP_log', 'adjusted_DETP_log', 'adjusted_DMTP_log', 'adjusted_TCP_log', 
+                                     'adjusted_PNP_log', 'adjusted_DEDP_log', 'adjusted_DMDP_log', 'adjusted_PBA_log', 'adjusted_TRANS_DCCA_log', 'adjusted_CIS_DCCA_log'),
+                           labels = c('DEP', 'DMP', 'DETP', 'DMTP', 'TCP', 'PNP', 'DEDP', 'DMDP', 'PBA', 'TRANS DCCA', 'CIS DCCA'))
 
 figure4_data$covariates<- factor(figure4_data$covariates,
                                  levels = c(
                                    "Ethnicity", 
-                                   "Recruitment Age",
-                                   "Highest Education ",
-                                   "Household Income"))
+                                   "Age",
+                                   "Education",
+                                   "Income",
+                                   "Occupation",
+                                   "Parity"))
+
 
 figure4_data$term<- factor(figure4_data$term,
-                           levels = c('Chinese',
-                                      'Indian/Malay',
-                                      'First tertile',
-                                      'Second tertile',
-                                      'Third tertile',
-                                      'University',
-                                      'Primary/Secondary/Post Secondary',
-                                      '$6,376 and below',
-                                      '$6,377 - $11,293',
-                                      '$11,294 and above'
+                           levels = c("ethnicity_specified_recatIndian/Malay",
+                                      "age_at_recruitment_catAge third tertile",
+                                      "age_at_recruitment_catAge second tertile",
+                                      "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary",
+                                      "pcv1_household_income_recat$11,294 and above",
+                                      "pcv1_household_income_recat$6,377 - $11,293",
+                                      "occupationService worker",
+                                      "occupationHealth care worker",
+                                      "occupationOffice worker",
+                                      "pcv1_parity_recat>= 1"
                            ))
 
+
 figure4_data$Group<- factor(figure4_data$Group,
-                            levels = c("OP pesticides", "PYR metabolites"))
+                            levels = c("OP pesticides", "PYR metabolites"),
+                            labels = c("OP pesticides", "Pyrethroids"))
 
 
 
@@ -54,26 +61,38 @@ figure4_data$conf.high<- as.numeric(figure4_data$conf.high)
 figure4_1<- ggplot(figure4_data,aes(y=term)) +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
   geom_point(size=1.8,aes(x=Estimate)) +
+  scale_y_discrete(labels = c("ethnicity_specified_recatIndian/Malay" = bquote('Indian/Malay vs.'~Chinese^a),
+                              "age_at_recruitment_catAge third tertile" = bquote('above 31 years vs. below 29 years'~years^a),
+                              "age_at_recruitment_catAge second tertile" = bquote('(29 - 31) years vs. below 29'~years^a),
+                              "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary" = bquote('Primary/Secondary/Post_secondary vs.'~University^a),
+                              "pcv1_household_income_recat$11,294 and above" = bquote('$11,294 and above vs.$6,376 and'~below^a),
+                              "pcv1_household_income_recat$6,377 - $11,293" = bquote('$6,377 - $11,293 vs.$6,376 and'~below^a),
+                              "occupationService worker" = bquote('Service worker vs. Not'~working^a),
+                              "occupationHealth care worker" = bquote('Health care worker vs. Not'~working^a),
+                              "occupationOffice worker" = bquote('Office worker vs. Not'~working^a),
+                              "pcv1_parity_recat>= 1" = bquote('Multiparous vs.'~Nulliparous^b)))+
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
   scale_color_manual(drop = FALSE,
                      values = c("#C52A20", "#8E549E"),
-                     labels = c("OP pesticides", "PYR metabolites"))+
+                     labels = c("OP pesticides", "Pyrethroids"))+
   facet_nested(covariates~PEST, scale="free", space = "free_y", nest_line = element_line(colour = "blue"))+
   xlab(expression(beta ~ (`95% CI`)))+
   ylab("Covariates")+
   theme_bw()+
   theme(panel.spacing.y=unit(0, "line"),
-        axis.title=element_text(face="bold"),
-        legend.text = element_text(size = 9,face = "bold"),
-        legend.title = element_text(size = 10,face = "bold"),
+        axis.text.x = element_text(colour = "black", size=10),
+        axis.text.y = element_text(colour = "black", face = "bold",size=16),
+        axis.title=element_text(face="bold", size = 18),
+        legend.text = element_text(size = 15,face = "bold"),
+        legend.title = element_text(size = 15,face = "bold"),
         legend.position = "bottom",
         strip.background = element_blank(),
-        strip.text.x = element_text(colour = "black", face = "bold",size=10),
-        strip.text.y = element_text(colour = "black", face = "bold",size=10,angle=0))   
+        strip.text.x = element_text(colour = "black", face = "bold",size=14),
+        strip.text.y = element_blank())   
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure2.3.jpeg",
-     units="in", width=22, height=12, res=500)
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure7.jpeg",
+     units="in", width=22, height=10, res=500)
 
 
 figure4_1
