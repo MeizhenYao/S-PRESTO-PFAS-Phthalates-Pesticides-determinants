@@ -1,5 +1,5 @@
 ---
-title: "S-PRESTO PFAS determinants Multivariable regression"
+title: "S-PRESTO PFAS sensitivity analysis"
 author: "Meizhen Yao"
 date: "`r Sys.Date()`"
 output:
@@ -66,6 +66,7 @@ library(rmarkdown)
 library(officer)
 library(scales)
 library(lme4)
+library(mediation)
 
 # import data (change the path to the location where you save the dataset)
 PFAS<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
@@ -91,7 +92,8 @@ PFAS_log <- PFAS %>%
             vegetable_boil_sc = (vegetable_boil - mean(vegetable_boil))/sd(vegetable_boil),
             vegetable_SF_sc = (vegetable_SF - mean(vegetable_SF))/sd(vegetable_SF),
             Styrofoam_boxes_freq_mean_sc = (Styrofoam_boxes_freq_mean - mean(Styrofoam_boxes_freq_mean))/sd(Styrofoam_boxes_freq_mean),
-            Plastic_boxes_freq_mean_sc = (Plastic_boxes_freq_mean - mean(Plastic_boxes_freq_mean))/sd(Plastic_boxes_freq_mean))
+            Plastic_boxes_freq_mean_sc = (Plastic_boxes_freq_mean - mean(Plastic_boxes_freq_mean))/sd(Plastic_boxes_freq_mean),
+            ethnicity_specified_recat_bi = ifelse(ethnicity_specified_recat == "Chinese", "Chinese", "Malay/Indian"))
 
 ## numeric
 PFAS_log$PFHpA_bi<- PFAS_log$PFHpA_Comment
@@ -233,11 +235,20 @@ tbl_summary(PFAS_log,
 
 tbl_summary(PFAS_log,
             include = c(mca_dim2_cat, Fast_food),
-            by = mca_dim2_cat) %>% 
+            by = mca_dim2_cat,
+            statistic = list(all_continuous() ~ "{median} ({p25}, {p75})")) %>% 
    bold_labels() %>% 
    add_p()
 
-cor(PFAS_log$mca_dim1, PFAS_log$mca_dim2)
+
+tbl_summary(PFAS_log,
+            include = c(mca_dim1_cat, Fast_food),
+            by = mca_dim1_cat) %>% 
+   bold_labels() %>% 
+   add_p()
+
+
+cor(PFAS_log$Fast_food, PFAS_log$mca_dim2)
 
 tbl_summary(PFAS_log,
             include = c(mca_dim1_cat),
@@ -245,30 +256,32 @@ tbl_summary(PFAS_log,
    bold_labels() %>% 
    add_p()
 
+
+
 ```
 
 
-
-
-## Final model
-### PFAS
+# By ethnicity
+## model1: sociodemographic factors
 ```{r, message=FALSE,warning=FALSE}
 
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(ethnicity_specified_recat_bi == "Chinese")
 
 ## Fit the models
 PFAS_multireg1 <-
    c(lapply(PFAS_cont, function(x){
     
-    glm(formula = substitute(i ~ ethnicity_specified_recat+Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + fruit_sc + mca_dim1 + mca_dim2, 
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
                            list(i = as.name(x))),
-      data = PFAS_log,
+      data = PFAS_log_chinese,
       family = gaussian())
     }),
   lapply(PFAS_bi, function(x){
     
-    glm(formula = substitute(i ~  ethnicity_specified_recat+Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + fruit_sc + mca_dim1 + mca_dim2, 
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
                            list(i = as.name(x))),
-      data = PFAS_log,
+      data = PFAS_log_chinese,
       family = binomial())
    }))
 
@@ -291,15 +304,14 @@ PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>%
 
 PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
 
-final_model1<- PFAS_multireg1_coefs_data %>% 
+model1<- PFAS_multireg1_coefs_data %>% 
                             inner_join(PFAS_info, by="PFAS_name")%>% 
-                            filter(term %in% c("Fast_food_sc","fruit_sc", "mca_dim1", "mca_dim2")) %>%
                             mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
                                    conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
                                    conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
 
 ## put result into one table
-tabel<- flextable(as_grouped_data(final_model1, groups = "PFAS_name")) %>%          
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
         color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
@@ -307,31 +319,485 @@ tabel<- flextable(as_grouped_data(final_model1, groups = "PFAS_name")) %>%
 
 tabel
 
-##### extract results
-write_csv(final_model1, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_final_continuous_mca.csv")
 
+######## extract results
+education_chinese<- model1 %>% 
+                    filter(term == "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary") %>% 
+                    mutate(ethnicity = "Chinese")
 
 
 ```
 
 
-# Linear regression (continuous PFAS)
-## model1: sociodemographic factors
-### mutually adjusted
+
+```{r, message=FALSE,warning=FALSE}
+
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(ethnicity_specified_recat_bi != "Chinese")
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+model1<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")%>% 
+                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
+                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
+                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
+
+## put result into one table
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+education_nochinese<- model1 %>% 
+                    filter(term == "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary") %>% 
+                    mutate(ethnicity = "Malay/Indian")
+
+
+```
+
+
 ```{r, message=FALSE,warning=FALSE}
 
 ## Fit the models
 PFAS_multireg1 <-
    c(lapply(PFAS_cont, function(x){
     
-    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat*ethnicity_specified_recat_bi + pcv1_household_income_recat + occupation, 
                            list(i = as.name(x))),
       data = PFAS_log,
       family = gaussian())
     }),
   lapply(PFAS_bi, function(x){
     
-    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+    glm(formula = substitute(i ~ age_at_recruitment_cat + pcv1_highest_education_completed_recat*ethnicity_specified_recat_bi + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3),
+                                  p.value = round(p.value, 5)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, p.value) 
+
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          
+        color(~p.value < 0.05, ~p.value, color = "red")%>% 
+        theme_box() 
+        
+
+tabel
+
+
+
+```
+
+
+## model2: fast food intake
+```{r, message=FALSE,warning=FALSE}
+
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(ethnicity_specified_recat_bi == "Chinese")
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+model1<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")%>% 
+                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
+                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
+                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
+
+## put result into one table
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+fastfood_chinese<- model1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                    mutate(ethnicity = "Chinese")
+
+```
+
+
+
+```{r, message=FALSE,warning=FALSE}
+
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(ethnicity_specified_recat_bi != "Chinese")
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+model1<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")%>% 
+                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
+                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
+                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
+
+## put result into one table
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+fastfood_nochinese<- model1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                    mutate(ethnicity = "Malay/Indian")
+
+```
+
+
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc*ethnicity_specified_recat_bi + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc*ethnicity_specified_recat_bi + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3),
+                                  p.value = round(p.value, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high, p.value) 
+
+
+## put result into one table
+tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          
+        color(~p.value < 0.05, ~p.value, color = "red")%>% 
+        theme_box() 
+        
+
+tabel
+
+
+
+```
+
+
+```{r}
+model<- rbind(education_chinese,
+                   education_nochinese,
+                   fastfood_chinese,
+                   fastfood_nochinese)
+
+
+
+##### extract results
+write_csv(model, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_ethi_strata.csv")
+
+```
+
+
+
+# By ethnicity and MCA 
+```{r, message=FALSE,warning=FALSE}
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(mca_dim2_cat == "Low-tendency-packaging")
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+model1<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")%>% 
+                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
+                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
+                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
+
+## put result into one table
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+fastfood_low<- model1 %>% 
+               mutate(package = "Low-tendency-packaging")
+
+
+
+
+```
+
+```{r, message=FALSE,warning=FALSE}
+PFAS_log_chinese<- PFAS_log %>%
+                   filter(mca_dim2_cat == "High-tendency-packaging")
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log_chinese,
+      family = binomial())
+   }))
+
+## extract coefficients with confidence interval
+PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
+names(PFAS_multireg1_coefs) <- PFAS_name
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
+
+
+## subset estimates and CI for _only the biomarkers_
+PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
+
+PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
+
+model1<- PFAS_multireg1_coefs_data %>% 
+                            inner_join(PFAS_info, by="PFAS_name")%>% 
+                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
+                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
+                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
+
+## put result into one table
+tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+fastfood_high<- model1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                    mutate(package = "High-tendency-packaging")
+
+
+```
+
+
+```{r}
+model<- rbind(fastfood_low,
+                   fastfood_high)
+
+
+
+##### extract results
+write_csv(model, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_mca_strata.csv")
+
+```
+
+
+
+
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+PFAS_multireg1 <-
+   c(lapply(PFAS_cont, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc*mca_dim2_cat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = PFAS_log,
+      family = gaussian())
+    }),
+  lapply(PFAS_bi, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc*mca_dim2_cat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
                            list(i = as.name(x))),
       data = PFAS_log,
       family = binomial())
@@ -372,48 +838,36 @@ tabel<- flextable(as_grouped_data(model1, groups = "PFAS_name")) %>%
 tabel
 
 
+fastfood_high<- model1 %>% 
+                    filter(term == "Fast_food_sc") %>% 
+                    mutate(package == "High-tendency-packaging")
+
 
 ```
 
-### unadjusted
-```{r, message=FALSE,warning=FALSE}
-
-dat <- PFAS_log  # your data frame
-
-fit_one <- function(y, x, data, family = NULL) {
-  f <- as.formula(paste(y, "~", x))
-  mod <- if (is.null(family)) lm(f, data = data) else glm(f, data = data, family = family)
 
 
-  out <- tidy(mod, conf.int = TRUE) |>
-    # keep the row for a continuous predictor or all factor level rows
-    filter(term == x | str_starts(term, paste0(x))) |>
-    mutate(
-      outcome   = y,
-      predictor = x,
-      model     = ifelse(is.null(family), "lm", "glm_binomial")
-    ) |>
-    select(outcome, predictor, model, term, estimate, conf.low, conf.high, p.value)
+```{r}
 
-  # add ORs for logistic models
-  if (!is.null(family)) {
-    out <- out |>
-      mutate(estimate = exp(estimate), conf.low = exp(conf.low), conf.high = exp(conf.high))
-  }
-  out
-}
+# PFAS_log <- PFAS_log[complete.cases(PFAS_log[, c('Fast_food_sc' , 'ethnicity_specified_recat' , 'age_at_recruitment_cat', 'pcv1_highest_education_completed_recat', 'pcv1_household_income_recat', 'occupation', 'PFNA_log', 'mca_dim2_cat')]), ]
 
-# Continuous PFAS outcomes
-res_cont <- map_dfr(PFAS_cont, function(y) {
-  map_dfr(predictors, function(x) fit_one(y, x, dat, family = NULL))
-})
+# Fit mediator model
+med.fit <- glm(mca_dim2_cat ~ Fast_food_sc ,
+               data = PFAS_log,
+               family = binomial(probit))
 
-# Binary PFAS outcomes
-res_bin <- map_dfr(PFAS_bi, function(y) {
-  map_dfr(predictors, function(x) fit_one(y, x, dat, family = binomial()))
-})
+# Fit outcome model
+out.fit <- glm(PFNA_log ~ mca_dim2_cat + Fast_food_sc ,
+               data = PFAS_log,
+               family = gaussian())
 
-results <- bind_rows(res_cont, res_bin)
+summary(med.fit)
+summary(out.fit)
+
+
+# Run mediation analysis
+med.out <- mediate(med.fit, out.fit, treat = "Fast_food_sc", mediator = "mca_dim2_cat", boot = FALSE)  # Increase sims for stability
+summary(med.out)
 
 ```
 
@@ -421,554 +875,12 @@ results <- bind_rows(res_cont, res_bin)
 
 
 
-## model2: one factor + sociodemographic factors
-## Parity
-```{r, message=FALSE,warning=FALSE}
 
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ pcv1_parity_recat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ pcv1_parity_recat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
 
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
 
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
 
 
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
 
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
 
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name")%>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
 
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-
-######## extract results
-parity<- PFAS_multireg1_coefs_data %>% 
-       filter(term == "pcv1_parity_recat>= 1")
-
-
-
-# ####### extract results
-PFAS_model1<- rbind(model1,
-                    parity)
-
-
-# write_csv(PFAS_model1, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/PFAS_model1_raw.csv")
-
-
-
-```
-
-
-## Total fish
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name")%>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-
-######## extract results
-fish<- PFAS_multireg1_coefs_data %>% 
-       filter(term == "TotalFish_sc")
-```
-
-## Fast food
-```{r, message=FALSE,warning=FALSE}
-# PFAS_log_chinese<- PFAS_log %>% 
-#                    filter(ethnicity_specified_recat == "Indian")
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name")%>% 
-                            filter(term == "Fast_food_sc") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-######## extract results
-fast_food<- PFAS_multireg1_coefs_data
-
-```
-
-## Fruit
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-
-
-######## extract results
-fruit<- PFAS_multireg1_coefs_data %>% 
-        filter(term == "fruit_sc")
-
-```
-
-## Vegetable
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-
-######## extract results
-vegetable<- PFAS_multireg1_coefs_data %>% 
-        filter(term == "vegetable_sc")
-```
-
-## Styrofoam boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-######## extract results
-Styrofoam_boxes<- PFAS_multireg1_coefs_data %>% 
-            filter(term == "Styrofoam_boxesYes")
-```
-
-
-## Plastic boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high) 
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>% 
-                            inner_join(PFAS_info, by="PFAS_name") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-######## extract results
-Plastic_boxes<- PFAS_multireg1_coefs_data %>% 
-            filter(term == "Plastic_boxesYes")
-```
-
-
-
-## FFQ mca dim1
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-
-    glm(formula = substitute(i ~ mca_dim1_cat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation,
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-
-    glm(formula = substitute(i ~ mca_dim1_cat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation,
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>%
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>%
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>%
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high)
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>%
-                            inner_join(PFAS_info, by="PFAS_name") %>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>%
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box()
-
-
-tabel
-
-######## extract results
-mca_dim1<- PFAS_multireg1_coefs_data %>%
-            filter(term %in% c("mca_dim1_catHigh-tendency-outside"))
-```
-
-
-## FFQ mca dim2
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-PFAS_multireg1 <-
-   c(lapply(PFAS_cont, function(x){
-
-    glm(formula = substitute(i ~ mca_dim2 + ethnicity_specified_recat  + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation,
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = gaussian())
-    }),
-  lapply(PFAS_bi, function(x){
-
-    glm(formula = substitute(i ~ mca_dim2 + ethnicity_specified_recat  + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation,
-                           list(i = as.name(x))),
-      data = PFAS_log,
-      family = binomial())
-   }))
-
-## extract coefficients with confidence interval
-PFAS_multireg1_coefs <- lapply(PFAS_multireg1, tidy, conf.int = T)
-names(PFAS_multireg1_coefs) <- PFAS_name
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-PFAS_multireg1_coefs_data1 <- bind_rows(PFAS_multireg1_coefs, .id = "PFAS_name")
-
-
-## subset estimates and CI for _only the biomarkers_
-PFAS_multireg1_coefs_data <- PFAS_multireg1_coefs_data1 %>%
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>%
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>%
-                           dplyr::select(PFAS_name, term, Estimate, conf.low, conf.high)
-
-PFAS_multireg1_coefs_data$sig<- ifelse(PFAS_multireg1_coefs_data$conf.low >0 & PFAS_multireg1_coefs_data$conf.high >0 | PFAS_multireg1_coefs_data$conf.low <0 & PFAS_multireg1_coefs_data$conf.high <0, "*", NA )
-
-PFAS_multireg1_coefs_data<- PFAS_multireg1_coefs_data %>%
-                            inner_join(PFAS_info, by="PFAS_name")%>% 
-                            mutate(Estimate = if_else(beta=="log(OR)", exp(Estimate), Estimate),
-                                   conf.low = if_else(beta=="log(OR)", exp(conf.low), conf.low),
-                                   conf.high = if_else(beta=="log(OR)", exp(conf.high), conf.high))
-
-## put result into one table
-tabel<- flextable(as_grouped_data(PFAS_multireg1_coefs_data, groups = "PFAS_name")) %>%          color(~sig == "*", ~conf.low, color = "red")%>%
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box()
-
-
-tabel
-
-
- ######## extract results -->
-mca_dim2<- PFAS_multireg1_coefs_data %>%
-            filter(term %in% c ("mca_dim2_catHigh-tendency-packaging"))
-
-``` 
 

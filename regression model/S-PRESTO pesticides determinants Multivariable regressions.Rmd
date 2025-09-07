@@ -65,11 +65,11 @@ library(scales)
 library(lme4)
 
 # import data (change the path to the location where you save the dataset)
-Pesticides<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
+pesticides<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_pesticides_long_20230317.xlsx")
 
 
 ## log transformation
-pest_log <- Pesticides %>% 
+pest_log <- pesticides %>% 
             mutate(adjusted_PBA_log=log2(adjusted_PBA), 
                               adjusted_CIS_DCCA_log=log2(adjusted_CIS_DCCA), 
                               adjusted_TRANS_DCCA_log=log2(adjusted_TRANS_DCCA), 
@@ -122,7 +122,7 @@ pest_log$occupation<- factor(pest_log$occupation,
                             levels = c("Not working", "Office worker", "Health care worker", "Service worker"))
 
 ## pesticides information
-PEST<- c('adjusted_PBA_log','adjusted_CIS_DCCA_log','adjusted_TRANS_DCCA_log','adjusted_PNP_log','adjusted_TCP_log','adjusted_DMP_log','adjusted_DMTP_log','adjusted_DMDP_log','adjusted_DEP_log','adjusted_DETP_log','adjusted_DEDP_log')
+pest<- c('adjusted_PBA_log','adjusted_CIS_DCCA_log','adjusted_TRANS_DCCA_log','adjusted_PNP_log','adjusted_TCP_log','adjusted_DMP_log','adjusted_DMTP_log','adjusted_DMDP_log','adjusted_DEP_log','adjusted_DETP_log','adjusted_DEDP_log')
 
 str(pest_log)
 
@@ -141,7 +141,7 @@ tbl_summary(pest_log,
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -151,11 +151,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -164,7 +164,7 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 
@@ -173,7 +173,7 @@ model1<- pest_mixreg1_coefs_data
 
 
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -192,7 +192,7 @@ tabel
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ pcv1_parity_recat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -202,11 +202,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -215,11 +215,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -246,7 +246,7 @@ write_csv(pest_model1, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Docu
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -256,11 +256,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -269,11 +269,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -292,7 +292,7 @@ fish<- pest_mixreg1_coefs_data %>%
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -302,11 +302,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -315,11 +315,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -336,7 +336,7 @@ fast_food<- pest_mixreg1_coefs_data %>%
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -346,11 +346,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -359,11 +359,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -381,7 +381,7 @@ fruit<- pest_mixreg1_coefs_data %>%
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -391,11 +391,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -404,11 +404,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -426,7 +426,7 @@ vegetable<- pest_mixreg1_coefs_data %>%
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -436,11 +436,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -449,11 +449,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -472,7 +472,7 @@ Styrofoam_boxes<- pest_mixreg1_coefs_data %>%
 
 ## Fit the models
 pest_mixreg1 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
     lmer(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation + (1 | Subject_ID), 
                            list(i = as.name(x))),
@@ -482,11 +482,11 @@ pest_mixreg1 <-
 
 ## extract coefficients with confidence interval
 pest_mixreg1_coefs <- lapply(pest_mixreg1, tidy, conf.int = T)
-names(pest_mixreg1_coefs) <- PEST
+names(pest_mixreg1_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "PEST")
+pest_mixreg1_coefs_data1 <- bind_rows(pest_mixreg1_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -495,11 +495,11 @@ pest_mixreg1_coefs_data <- pest_mixreg1_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           dplyr::select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_mixreg1_coefs_data$sig<- ifelse(pest_mixreg1_coefs_data$conf.low >0 & pest_mixreg1_coefs_data$conf.high >0 | pest_mixreg1_coefs_data$conf.low <0 & pest_mixreg1_coefs_data$conf.high <0, "*", NA )
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(as_grouped_data(pest_mixreg1_coefs_data, groups = "pest")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
@@ -542,9 +542,9 @@ pest_log_pcv2<- pest_log %>%
 
 ## Fit the models
 pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
-    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
+    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation , 
                            list(i = as.name(x))),
       data = pest_log_pcv2,
       family = gaussian())
@@ -553,11 +553,11 @@ pest_multireg1_pcv2 <-
 
 ## extract coefficients with confidence interval
 pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
+names(pest_multireg1_pcv2_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -566,28 +566,33 @@ pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           select(pest, term, Estimate, conf.low, conf.high) 
 
 pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
+tabel<- flextable(pest_multireg1_pcv2_coefs_data) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
         
 
 tabel
+ 
+model1<- pest_multireg1_pcv2_coefs_data
 
 ```
+
 
 ### model2: one dietary factor + sociodemographic factors
-#### Total fish
+#### Parity
 ```{r, message=FALSE,warning=FALSE}
 
 ## Fit the models
 pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
+  lapply(pest, function(x){
     
-    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
+    glm(formula = substitute(i ~ pcv1_parity_recat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation , 
                            list(i = as.name(x))),
       data = pest_log_pcv2,
       family = gaussian())
@@ -596,11 +601,11 @@ pest_multireg1_pcv2 <-
 
 ## extract coefficients with confidence interval
 pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
+names(pest_multireg1_pcv2_coefs) <- pest
 
 ## combine all lists into one big table
 ## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
 
 
 ## subset estimates and CI for _only the biomarkers_
@@ -609,1030 +614,12 @@ pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>%
                            mutate(Estimate = round(estimate, 3),
                                   conf.low = round(conf.low, 3),
                                   conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
+                           select(pest, term, Estimate, conf.low, conf.high)
 
 pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
 ## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-
-#### Fast food
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           dplyr::select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Fruit
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-
-#### Vegetable
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Vegetable boil
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_boil_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Vegetable stir fried
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_SF_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Styrofoam boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Styrofoam boxes mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Plastic boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Plastic boxes mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Canned
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Canned + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Canned mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pcv2 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Canned_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pcv2,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
-names(pest_multireg1_pcv2_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-## pgv3
-```{r}
-pest_log_pgv3<- pest_log %>% 
-                filter(Timepoint=="pgv3")
-```
-
-### model1: sociodemographic factors
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-### model2: one dietary factor + sociodemographic factors
-#### Total fish
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-
-#### Fast food
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Fruit
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-
-#### Vegetable
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Vegetable boil
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_boil_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Vegetable stir fried
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ vegetable_SF_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Styrofoam boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Styrofoam boxes mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Styrofoam_boxes_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Plastic boxes
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Plastic boxes mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Plastic_boxes_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Canned
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Canned + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          color(~sig == "*", ~conf.low, color = "red")%>% 
-        color(~sig == "*", ~conf.high, color = "red")%>%
-        theme_box() 
-        
-
-tabel
-
-```
-
-#### Canned mean frequency
-```{r, message=FALSE,warning=FALSE}
-
-## Fit the models
-pest_multireg1_pgv3 <-
-  lapply(PEST, function(x){
-    
-    glm(formula = substitute(i ~ Canned_freq_mean + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat pest_log, 
-                           list(i = as.name(x))),
-      data = pest_log_pgv3,
-      family = gaussian())
-    
-  })
-
-## extract coefficients with confidence interval
-pest_multireg1_pgv3_coefs <- lapply(pest_multireg1_pgv3, tidy, conf.int = T)
-names(pest_multireg1_pgv3_coefs) <- PEST
-
-## combine all lists into one big table
-## gives estimates and CI for biomarkers and variables
-pest_multireg1_pgv3_coefs_data1 <- bind_rows(pest_multireg1_pgv3_coefs, .id = "PEST")
-
-
-## subset estimates and CI for _only the biomarkers_
-pest_multireg1_pgv3_coefs_data <- pest_multireg1_pgv3_coefs_data1 %>% 
-                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
-                           mutate(Estimate = round(estimate, 3),
-                                  conf.low = round(conf.low, 3),
-                                  conf.high = round(conf.high, 3)) %>% 
-                           select(PEST, term, Estimate, conf.low, conf.high) 
-
-pest_multireg1_pgv3_coefs_data$sig<- ifelse(pest_multireg1_pgv3_coefs_data$conf.low >0 & pest_multireg1_pgv3_coefs_data$conf.high >0 | pest_multireg1_pgv3_coefs_data$conf.low <0 & pest_multireg1_pgv3_coefs_data$conf.high <0, "*", NA )
-## put result into one table
-tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST")) %>%          
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
         color(~sig == "*", ~conf.low, color = "red")%>% 
         color(~sig == "*", ~conf.high, color = "red")%>%
         theme_box() 
@@ -1640,21 +627,776 @@ tabel<- flextable(as_grouped_data(pest_multireg1_pgv3_coefs_data, groups = "PEST
 
 tabel
 
+######## extract results
+
+######## extract results
+parity<- pest_multireg1_pcv2_coefs_data %>% 
+         filter(term == "pcv1_parity_recat>= 1")
+
+
+
+
+# ####### extract results
+pest_model1<- rbind(model1,
+                    parity)
+
+
+####### extract results
+write_csv(pest_model1, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/pest_model1_pcv2_raw.csv")
+
+```
+
+
+#### Total fish
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+fish<- pest_multireg1_pcv2_coefs_data %>% 
+       filter(term == "TotalFish_sc")
+
+```
+
+
+#### Fast food
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+fast_food<- pest_multireg1_pcv2_coefs_data %>% 
+       filter(term == "Fast_food_sc")
+```
+
+#### Fruit
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+fruit<- pest_multireg1_pcv2_coefs_data %>% 
+        filter(term == "fruit_sc")
+```
+
+
+#### Vegetable
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+vegetable<- pest_multireg1_pcv2_coefs_data %>% 
+        filter(term == "vegetable_sc")
+
+```
+
+#### Styrofoam boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+Styrofoam_boxes<- pest_multireg1_pcv2_coefs_data %>% 
+            filter(term == "Styrofoam_boxesYes")
+
+
+```
+
+
+#### Plastic boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+Plastic_boxes<- pest_multireg1_pcv2_coefs_data %>% 
+            filter(term == "Plastic_boxesYes")
+
+
+
 ```
 
 
 
-<!-- ## combine datasets -->
-<!-- ```{r, message=FALSE,warning=FALSE} -->
-<!-- pest_multireg1_coefs_data<- rbind(pest_multireg1_pcv2_coefs_data, pest_multireg1_pgv3_coefs_data) -->
-
-<!-- write_xlsx(pest_multireg1_coefs_data, "~/Projects/S-PRESTO/code/R/Tomer/manuscript figure/input/figure4_data_raw_08122022.xlsx") -->
-<!-- ``` -->
-
-
-
+```{r}
+pest_model2<- rbind(fish,
+                    fast_food,
+                    fruit,
+                    vegetable,
+                    Styrofoam_boxes,
+                    Plastic_boxes)
 
 
 
+######## extract results
+write_csv(pest_model2, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/pest_model2_pcv2_raw.csv")
+
+
+
+
+```
+
+
+
+## pgv3
+```{r}
+pest_log_pcv2<- pest_log %>% 
+                filter(Timepoint=="pgv3")
+```
+
+
+
+### model1: sociodemographic factors
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(pest_multireg1_pcv2_coefs_data) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+ 
+model1<- pest_multireg1_pcv2_coefs_data
+
+```
+
+
+### model2: one dietary factor + sociodemographic factors
+#### Parity
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ pcv1_parity_recat + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high)
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+
+######## extract results
+parity<- pest_multireg1_pcv2_coefs_data %>% 
+         filter(term == "pcv1_parity_recat>= 1")
+
+
+
+
+# ####### extract results
+pest_model1<- rbind(model1,
+                    parity)
+
+
+####### extract results
+write_csv(pest_model1, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/pest_model1_pgv3_raw.csv")
+
+```
+
+
+#### Total fish
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ TotalFish_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat + occupation, 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+fish<- pest_multireg1_pcv2_coefs_data %>% 
+       filter(term == "TotalFish_sc")
+
+```
+
+
+#### Fast food
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Fast_food_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+fast_food<- pest_multireg1_pcv2_coefs_data %>% 
+       filter(term == "Fast_food_sc")
+```
+
+#### Fruit
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ fruit_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+fruit<- pest_multireg1_pcv2_coefs_data %>% 
+        filter(term == "fruit_sc")
+```
+
+
+#### Vegetable
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ vegetable_sc + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+vegetable<- pest_multireg1_pcv2_coefs_data %>% 
+        filter(term == "vegetable_sc")
+
+```
+
+#### Styrofoam boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Styrofoam_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+
+######## extract results
+Styrofoam_boxes<- pest_multireg1_pcv2_coefs_data %>% 
+            filter(term == "Styrofoam_boxesYes")
+
+
+```
+
+
+#### Plastic boxes
+```{r, message=FALSE,warning=FALSE}
+
+## Fit the models
+pest_multireg1_pcv2 <-
+  lapply(pest, function(x){
+    
+    glm(formula = substitute(i ~ Plastic_boxes + ethnicity_specified_recat + age_at_recruitment_cat + pcv1_highest_education_completed_recat + pcv1_household_income_recat , 
+                           list(i = as.name(x))),
+      data = pest_log_pcv2,
+      family = gaussian())
+    
+  })
+
+## extract coefficients with confidence interval
+pest_multireg1_pcv2_coefs <- lapply(pest_multireg1_pcv2, tidy, conf.int = T)
+names(pest_multireg1_pcv2_coefs) <- pest
+
+## combine all lists into one big table
+## gives estimates and CI for biomarkers and variables
+pest_multireg1_pcv2_coefs_data1 <- bind_rows(pest_multireg1_pcv2_coefs, .id = "pest")
+
+
+## subset estimates and CI for _only the biomarkers_
+pest_multireg1_pcv2_coefs_data <- pest_multireg1_pcv2_coefs_data1 %>% 
+                           filter(term != "(Intercept)" & term !=  "sd__(Intercept)" & term !=  "sd__Observation") %>% 
+                           mutate(Estimate = round(estimate, 3),
+                                  conf.low = round(conf.low, 3),
+                                  conf.high = round(conf.high, 3)) %>% 
+                           select(pest, term, Estimate, conf.low, conf.high) 
+
+pest_multireg1_pcv2_coefs_data$sig<- ifelse(pest_multireg1_pcv2_coefs_data$conf.low >0 & pest_multireg1_pcv2_coefs_data$conf.high >0 | pest_multireg1_pcv2_coefs_data$conf.low <0 & pest_multireg1_pcv2_coefs_data$conf.high <0, "*", NA )
+
+## put result into one table
+tabel<- flextable(as_grouped_data(pest_multireg1_pcv2_coefs_data, groups = c("pest"))) %>%          
+        color(~sig == "*", ~conf.low, color = "red")%>% 
+        color(~sig == "*", ~conf.high, color = "red")%>%
+        theme_box() 
+        
+
+tabel
+
+######## extract results
+Plastic_boxes<- pest_multireg1_pcv2_coefs_data %>% 
+            filter(term == "Plastic_boxesYes")
+
+
+
+```
+
+
+
+```{r}
+pest_model2<- rbind(fish,
+                    fast_food,
+                    fruit,
+                    vegetable,
+                    Styrofoam_boxes,
+                    Plastic_boxes)
+
+
+
+######## extract results
+write_csv(pest_model2, "C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data/pest_model2_pgv3_raw.csv")
+
+
+
+
+```
 
 

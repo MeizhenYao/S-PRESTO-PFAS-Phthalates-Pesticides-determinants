@@ -33,7 +33,7 @@ library(corrplot)
 #-----------------------------------------PFAS
 #--- boxplot
 # import data (change the path to the location where you save the dataset)
-PFAS<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
+PFAS<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
 
 
 ## data in long format
@@ -77,76 +77,75 @@ pm1_1 = p1 + theme(axis.text.x= element_text(face="bold", angle = 0, size = 18),
 pm1_1
 
 #--- corrplot
-corr_fun<- function(data){
-
-corrplot(data, 
-         method="color" ,
-         col = colorRampPalette(c("steelblue", "white", "darkred"))(100),cl.lim=c(0,1),
-         type="upper",
-         # order="hclust" ,
-         tl.pos = 'tp',
-         tl.srt=30,
-         tl.col = "black",
-) 
-corrplot(data, 
-         method="number", 
-         type="lower", 
-         # order="hclust" ,
-         col = 'black', 
-         tl.pos = 'n',
-         cl.pos = 'n',
-         add=TRUE
-) 
-}
-
-# corrplot(data, 
-#          method="number" ,
-#          col = colorRampPalette(c("steelblue", "white", "darkred"))(100),cl.lim=c(0,1),
-#          type="full",
-#          # order="hclust" ,
-#          # addrect = 2,
-#          tl.pos = 'lt',
-#          tl.srt=30,
-#          tl.col = "black",
-# )
 
 
 # specify metal mixture
 mixture_PFAS=c('PFOS_Total', 'PFOA_Linear', 'PFNA', 'PFHxS', 'PFDA', 'PFHpA', 'PFHpS', 'PFBS', 'NMeFOSAA', 'PAP', 'diPAP')
 PFAS_name=c('Total PFOS', 'Linear PFOA', 'PFNA', 'PFHxS', 'PFDA', 'PFHpA', 'PFHpS', 'PFBS', 'NMeFOSAA', '6:2 PAP', '6:2 diPAP')
 
-# mixture_PFAS
 
-PFAS_corr = cor(data.frame(PFAS[,mixture_PFAS]), method = "spearman")
-colnames(PFAS_corr)<- PFAS_name[1:11]
-rownames(PFAS_corr)<- PFAS_name[1:11]
+library(corrplot)
+library(Hmisc)
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/number/Supp_figure1.jpeg",
-     units="in", width=16, height=12, res=500)
+# compute r and p for your PFAS set
+X <- as.matrix(PFAS[, mixture_PFAS])
+rc <- Hmisc::rcorr(X, type = "spearman")
+
+# rename to your display names
+colnames(rc$r) <- PFAS_name
+rownames(rc$r) <- PFAS_name
+colnames(rc$P) <- PFAS_name
+rownames(rc$P) <- PFAS_name
+
+rc$P[is.na(rc$P)] <- 1
+# your plotting function, now with stars
+corr_fun <- function(corr_mat, p_mat) {
+  corrplot(corr_mat,
+           method = "color",
+           col = colorRampPalette(c("steelblue", "white", "darkred"))(100),
+           tl.pos = "tp",
+           tl.srt = 30,
+           tl.col = "black",
+           p.mat = p_mat,
+           sig.level = c(0.001, 0.01, 0.05),  # thresholds for *, **, ***
+           insig = "label_sig",               # draw stars on significant cells
+           pch.cex = 1.5,                     # star size
+           pch.col = "black")                 # star color
+}
 
 
-corr_fun(PFAS_corr) 
+
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure1.jpeg",
+     units="in", width=14, height=10, res=500)
+
+# call with your matrices
+corr_fun(rc$r, rc$P)
+
+
 
 dev.off()
 
-# ggplot(melt(cor(data.frame(PFAS[,mixture_PFAS]), method = "spearman")), aes(Var1, Var2, fill=value)) +
-#   geom_tile(height=0.7, width=0.7) +
-#   scale_fill_gradient2(low="blue", mid="white", high="red") +
-#   theme_bw() +
-#   coord_equal() +
-#   labs(x="",y="",fill="Correlation", tag = "(B)") +
-#   theme(axis.text.x=element_text(size=9, angle=50, vjust=1, hjust=1, 
-#                                  margin=margin(-3,0,0,0), face = "bold"),
-#         axis.ticks = element_blank(),
-#         plot.tag = element_text(size = 14,face = "bold"),
-#         axis.text.y=element_text(size=9, margin=margin(0,-2,0,0), face = "bold"),
-#         panel.grid.major=element_blank(), plot.margin = margin(0,-5,0,-5),
-#         legend.text = element_text(angle = 90, hjust = 1, vjust = 1)) 
+
+
+# Long format (all cells)
+corr_long_all <- PFAS_corr  %>% 
+  as.data.frame(check.names = FALSE) |>
+  rownames_to_column("PFAS1") |>
+  pivot_longer(-PFAS1, names_to = "PFAS2", values_to = "cor")
+
+# Keep one pair per combination and drop the diagonal
+corr_long <- corr_long_all |>
+  filter(PFAS1 < PFAS2) |>
+  mutate(
+    PFAS1 = factor(PFAS1, levels = rownames(PFAS_corr)),
+    PFAS2 = factor(PFAS2, levels = colnames(PFAS_corr))
+  )
+summary(corr_long$cor)
 
 
 #-----------------------------------------Phthalates
-Phthalates<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
-Phthalates_wide<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_wide_20230317.xlsx")
+Phthalates<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
+Phthalates_wide<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_wide_20230317.xlsx")
 
 #--- boxplot
 ## info
@@ -192,7 +191,7 @@ phtha_long$Parent<- factor(phtha_long$Parent,
                            levels = c("Diethyl\nphthalate", "Di-iso-butyl\nphthalate", "Di-n-butyl\nphthalate", "Di-2-ethylhexyl\nterephthalate", "Di-iso-nonyl\nphthalate", "Di-2-ethylhexyl\nphthalate", "Butylbenzyl\nphthalate", "Di-isodecyl\nphthalate"))
 
 # put in plot
-p2 <- (ggplot(phtha_long, aes(y=reorder(Chemicals, median), x=log2(value),color=Group, fill=Timepoint)) + 
+p2 <- (ggplot(phtha_long, aes(y=reorder(Chemicals, median), x=log2(value),color=Group, fill=fct_rev(Timepoint))) + 
          geom_boxplot(size=0.8)+
          scale_color_manual(drop = FALSE,
                             values = c("#2E5FA1",  "#E3882F", "#1B7C3D", "#C52A20" , "#8E549E", "#545454"),
@@ -200,9 +199,10 @@ p2 <- (ggplot(phtha_long, aes(y=reorder(Chemicals, median), x=log2(value),color=
          scale_fill_manual(drop = FALSE,
                            values = c( "#FDFEFE", "#909497"),
                            labels = c("Preconception", "Pregnancy"),
-                           limits = rev(levels(phtha_long$Timepoint)))+
+                           breaks = c("pcv2", "pgv3"))+
          labs(y ="",x = "log2(Concentrations(µg/g))",
-              title = "Phthalates") + 
+              title = "Phthalates",
+              fill = "Timepoint") + 
          facet_grid(Parent ~ ., scales = "free_y", space = "free")+
          theme_classic())
 
@@ -258,56 +258,92 @@ mixture_phtha<- c('adjusted_MEP_pcv2',
                   'adjusted_MECPTP_pgv3'
                   )
 
-phtha_name=c('MEP at pcv2',
-             'MCPP at pcv2',
-             'MBZP at pcv2',
-             'MBP at pcv2',
-             'MIBP at pcv2',
-             'MEHP at pcv2',
-             'MEOHP at pcv2',
-             'MEHHP at pcv2',
-             'MECPP at pcv2',
-             'MCIOP at pcv2',
-             'MCINP at pcv2',
-             'MEHTP at pcv2',
-             'MEOHTP at pcv2',
-             'MEHHTP at pcv2',
-             'MECPTP at pcv2',
-             'MEP at pgv3',
-             'MCPP at pgv3',
-             'MBZP at pgv3',
-             'MBP at pgv3',
-             'MIBP at pgv3',
-             'MEHP at pgv3',
-             'MEOHP at pgv3',
-             'MEHHP at pgv3',
-             'MECPP at pgv3',
-             'MCIOP at pgv3',
-             'MCINP at pgv3',
-             'MEHTP at pgv3',
-             'MEOHTP at pgv3',
-             'MEHHTP at pgv3',
-             'MECPTP at pgv3'
+phtha_name=c('MEP at PC',
+             'MCPP at PC',
+             'MBZP at PC',
+             'MBP at PC',
+             'MIBP at PC',
+             'MEHP at PC',
+             'MEOHP at PC',
+             'MEHHP at PC',
+             'MECPP at PC',
+             'MCIOP at PC',
+             'MCINP at PC',
+             'MEHTP at PC',
+             'MEOHTP at PC',
+             'MEHHTP at PC',
+             'MECPTP at PC',
+             'MEP at MP',
+             'MCPP at MP',
+             'MBZP at MP',
+             'MBP at MP',
+             'MIBP at MP',
+             'MEHP at MP',
+             'MEOHP at MP',
+             'MEHHP at MP',
+             'MECPP at MP',
+             'MCIOP at MP',
+             'MCINP at MP',
+             'MEHTP at MP',
+             'MEOHTP at MP',
+             'MEHHTP at MP',
+             'MECPTP at MP'
              )
-# mixture_PFAS
+# correlation between phtha
 
-phtha_corr = cor(data.frame(Phthalates_wide[,mixture_phtha]), method = "spearman")
-colnames(phtha_corr)<- phtha_name[1:30]
-rownames(phtha_corr)<- phtha_name[1:30]
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/number/Supp_figure2.jpeg",
+
+# compute r and p for your PFAS set
+X <- as.matrix(Phthalates_wide[,mixture_phtha])
+rc <- Hmisc::rcorr(X, type = "spearman")
+
+# rename to your display names
+colnames(rc$r) <- phtha_name
+rownames(rc$r) <- phtha_name
+colnames(rc$P) <- phtha_name
+rownames(rc$P) <- phtha_name
+
+rc$P[is.na(rc$P)] <- 1
+# your plotting function, now with stars
+corr_fun <- function(corr_mat, p_mat) {
+  corrplot(corr_mat,
+           method = "color",
+           col = colorRampPalette(c("steelblue", "white", "darkred"))(100),
+           tl.pos = "tp",
+           tl.srt = 30,
+           tl.col = "black",
+           p.mat = p_mat,
+           sig.level = c(0.001, 0.01, 0.05),  # thresholds for *, **, ***
+           insig = "label_sig",               # draw stars on significant cells
+           pch.cex = 1.5,                     # star size
+           pch.col = "black")                 # star color
+}
+
+
+
+
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure2.jpeg",
      units="in", width=16, height=12, res=500)
 
 
-corr_fun(phtha_corr) %>%
-  corrRect(name = c('MEP at pcv2', 'MEP at pgv3', 'MECPTP at pgv3'))
+corr_fun(rc$r, rc$P) %>%
+  corrRect(name = c('MEP at PC', 'MEP at MP', 'MECPTP at MP'))
 
 dev.off()
 
 
+
+
+# Long format (all cells)
+corr_long_all <- phtha_corr [1:15, 16:30]  %>% 
+  diag()
+
+
+summary(corr_long_all)
+
 #-----------------------------------------Pesticides
-Pesticides<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
-Pesticides_wide<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_wide_20230317.xlsx")
+Pesticides<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
+Pesticides_wide<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_wide_20230317.xlsx")
 
 pest_name<- c('adjusted_PBA','adjusted_PBA','adjusted_FPBA','adjusted_FPBA','adjusted_CIS_DCCA','adjusted_CIS_DCCA','adjusted_TRANS_DCCA','adjusted_TRANS_DCCA','adjusted_PCP','adjusted_PCP','adjusted_PNP','adjusted_PNP','adjusted_TCP','adjusted_TCP','adjusted_DMP','adjusted_DMP','adjusted_DMTP','adjusted_DMTP','adjusted_DMDP','adjusted_DMDP','adjusted_DEP','adjusted_DEP','adjusted_DETP','adjusted_DETP','adjusted_DEDP','adjusted_DEDP')
 pest_time<- c("pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3","pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3", "pcv2", "pgv3")
@@ -354,7 +390,7 @@ pest_long$Timepoint<- factor(pest_long$Timepoint,
 
 
 # put in plot
-p3 <- (ggplot(pest_long, aes(y=Chemicals, x=log2(value),color=Group, fill=Timepoint)) + 
+p3 <- (ggplot(pest_long, aes(y=Chemicals, x=log2(value),color=Group, fill=fct_rev(Timepoint))) + 
          geom_boxplot(size=0.8)+
          scale_y_discrete(limits = rev(levels(pest_long$Chemicals)))+
          scale_color_manual(drop = FALSE,
@@ -363,9 +399,10 @@ p3 <- (ggplot(pest_long, aes(y=Chemicals, x=log2(value),color=Group, fill=Timepo
          scale_fill_manual(drop = FALSE,
                            values = c( "#FDFEFE", "#909497"),
                            labels = c("Preconception", "Pregnancy"),
-                           limits = rev(levels(phtha_long$Timepoint)))+
+                           breaks = c("pcv2", "pgv3"))+
          labs(y ="",x = "log2(Concentrations(µg/g))",
-              title = "Pesticides") + 
+              title = "Pesticides",
+              fill = "Timepoint") + 
          theme_classic())
 
 pm3_1 = p3 + theme(axis.text.x= element_text(face="bold", angle = 0, size = 18),
@@ -422,51 +459,85 @@ mixture_pest<- c('adjusted_PBA_pcv2',
 )
 
 
-pest_name=c('PBA at pcv2',
-            'FPBA at pcv2',
-            'CIS DCCA at pcv2',
-            'TRANS DCCA at pcv2',
-            'PCP at pcv2',
-            'PNP at pcv2',
-            'TCP at pcv2',
-            'DMP at pcv2',
-            'DMTP at pcv2',
-            'DMDP at pcv2',
-            'DEP at pcv2',
-            'DETP at pcv2',
-            'DEDP at pcv2',
-            'PBA at pgv3',
-            'FPBA at pgv3',
-            'CIS DCCA at pgv3',
-            'TRANS DCCA at pgv3',
-            'PCP at pgv3',
-            'PNP at pgv3',
-            'TCP at pgv3',
-            'DMP at pgv3',
-            'DMTP at pgv3',
-            'DMDP at pgv3',
-            'DEP at pgv3',
-            'DETP at pgv3',
-            'DEDP at pgv3'
+pest_name=c('PBA at PC',
+            'FPBA at PC',
+            'CIS DCCA at PC',
+            'TRANS DCCA at PC',
+            'PCP at PC',
+            'PNP at PC',
+            'TCP at PC',
+            'DMP at PC',
+            'DMTP at PC',
+            'DMDP at PC',
+            'DEP at PC',
+            'DETP at PC',
+            'DEDP at PC',
+            'PBA at MP',
+            'FPBA at MP',
+            'CIS DCCA at MP',
+            'TRANS DCCA at MP',
+            'PCP at MP',
+            'PNP at MP',
+            'TCP at MP',
+            'DMP at MP',
+            'DMTP at MP',
+            'DMDP at MP',
+            'DEP at MP',
+            'DETP at MP',
+            'DEDP at MP'
 )
 
 # mixture_PFAS
 
-pest_corr = cor(data.frame(Pesticides_wide[,mixture_pest]), method = "spearman")
-colnames(pest_corr)<- pest_name[1:26]
-rownames(pest_corr)<- pest_name[1:26]
+# compute r and p for your PFAS set
+X <- as.matrix(Pesticides_wide[,mixture_pest])
+rc <- Hmisc::rcorr(X, type = "spearman")
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/number/Supp_figure3.jpeg",
+# rename to your display names
+colnames(rc$r) <- pest_name
+rownames(rc$r) <- pest_name
+colnames(rc$P) <- pest_name
+rownames(rc$P) <- pest_name
+
+rc$P[is.na(rc$P)] <- 1
+# your plotting function, now with stars
+corr_fun <- function(corr_mat, p_mat) {
+  corrplot(corr_mat,
+           method = "color",
+           col = colorRampPalette(c("steelblue", "white", "darkred"))(100),
+           tl.pos = "tp",
+           tl.srt = 30,
+           tl.col = "black",
+           p.mat = p_mat,
+           sig.level = c(0.001, 0.01, 0.05),  # thresholds for *, **, ***
+           insig = "label_sig",               # draw stars on significant cells
+           pch.cex = 1.5,                     # star size
+           pch.col = "black")                 # star color
+}
+
+
+
+
+
+
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/Supp_figure3.jpeg",
      units="in", width=16, height=12, res=500)
 
-corr_fun(pest_corr)%>%
-corrRect(name = c('PBA at pcv2', 'PBA at pgv3', 'DEDP at pgv3'))
+corr_fun(rc$r, rc$P) %>%
+corrRect(name = c('PBA at PC', 'PBA at MP', 'DEDP at MP'))
 
 dev.off()
 
 
+# Long format (all cells)
+corr_long_all <- pest_corr [1:13, 14:26]  %>% 
+  diag()
 
 
+summary(corr_long_all)
+
+summary(corr_long_all[1:4])
+summary(corr_long_all[6:13])
 
 
 
@@ -479,7 +550,7 @@ plot
 
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure1.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure1.jpeg",
      units="in", width=24, height=15, res=600)
 
 plot

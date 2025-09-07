@@ -17,7 +17,7 @@ library(blme)
 library(glmnet)
 library(ggh4x)
 #------------------------------------------------------------import dataset
-figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/pest_model1.csv")
+figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/pest_model1.csv")
 
 #------------------------------------------------------------reformat variables
 figure4_data$PEST<- factor(figure4_data$PEST,
@@ -46,7 +46,17 @@ figure4_data$term<- factor(figure4_data$term,
                                       "occupationHealth care worker",
                                       "occupationOffice worker",
                                       "pcv1_parity_recat>= 1"
-                           ))
+                           ),
+                           labels = c('Indian/Malay vs.Chinese',
+                                      'above 31 years vs. below 29 years',
+                                      '29 - 31 years vs. below 29 years',
+                                      'Primary/Secondary/Post_secondary vs. University',
+                                      '$11,294 and above vs. $6,376 and below',
+                                      '$6,377 - $11,293 vs.$6,376 and below',
+                                      'Service worker vs. Not working',
+                                      'Health care worker vs. Not working',
+                                      'Office worker vs. Not working',
+                                      'Multiparous vs. Nulliparous'))
 
 
 figure4_data$Group<- factor(figure4_data$Group,
@@ -61,16 +71,6 @@ figure4_data$conf.high<- as.numeric(figure4_data$conf.high)
 figure4_1<- ggplot(figure4_data,aes(y=term)) +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
   geom_point(size=1.8,aes(x=Estimate)) +
-  scale_y_discrete(labels = c("ethnicity_specified_recatIndian/Malay" = bquote('Indian/Malay vs.'~Chinese^a),
-                              "age_at_recruitment_catAge third tertile" = bquote('above 31 years vs. below 29 years'~years^a),
-                              "age_at_recruitment_catAge second tertile" = bquote('(29 - 31) years vs. below 29'~years^a),
-                              "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary" = bquote('Primary/Secondary/Post_secondary vs.'~University^a),
-                              "pcv1_household_income_recat$11,294 and above" = bquote('$11,294 and above vs.$6,376 and'~below^a),
-                              "pcv1_household_income_recat$6,377 - $11,293" = bquote('$6,377 - $11,293 vs.$6,376 and'~below^a),
-                              "occupationService worker" = bquote('Service worker vs. Not'~working^a),
-                              "occupationHealth care worker" = bquote('Health care worker vs. Not'~working^a),
-                              "occupationOffice worker" = bquote('Office worker vs. Not'~working^a),
-                              "pcv1_parity_recat>= 1" = bquote('Multiparous vs.'~Nulliparous^b)))+
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
   scale_color_manual(drop = FALSE,
                      values = c("#C52A20", "#8E549E"),
@@ -91,7 +91,7 @@ figure4_1<- ggplot(figure4_data,aes(y=term)) +
         strip.text.y = element_blank())   
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure7.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure8.jpeg",
      units="in", width=22, height=10, res=500)
 
 

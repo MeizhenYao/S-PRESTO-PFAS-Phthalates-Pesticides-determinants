@@ -82,21 +82,12 @@ corr_fun<- function(data){
 corrplot(data, 
          method="color" ,
          col = colorRampPalette(c("steelblue", "white", "darkred"))(100),cl.lim=c(0,1),
-         type="upper",
          # order="hclust" ,
          tl.pos = 'tp',
          tl.srt=30,
          tl.col = "black",
 ) 
-corrplot(data, 
-         method="number", 
-         type="lower", 
-         # order="hclust" ,
-         col = 'black', 
-         tl.pos = 'n',
-         cl.pos = 'n',
-         add=TRUE
-) 
+
 }
 
 # corrplot(data, 

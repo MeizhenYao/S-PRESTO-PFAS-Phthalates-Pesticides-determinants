@@ -11,7 +11,7 @@ library(readxl)
 
 #------------------------------------------------
 # PFAS
-PFAS<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
+PFAS<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_PFAS_20230316.xlsx")
 
 names(PFAS)[30]<- paste("FTS_Comment")
 names(PFAS)[32]<- paste("PAP_Comment")
@@ -207,9 +207,9 @@ PFAS_table
 
 #------------------------------------------------
 # Phthalates
-phtha_raw<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
-phtha_wide<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_wide_20230317.xlsx")
-phtha_comment <- read_excel("~/Projects/S-PRESTO/input/chemical/phtha_adjusted_CRE.xlsx")
+phtha_raw<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
+phtha_wide<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_wide_20230317.xlsx")
+phtha_comment <- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/chemical/phtha_adjusted_CRE.xlsx")
 
 
 phtha<- phtha_raw %>% 
@@ -737,9 +737,9 @@ flextable(ovarall_data %>% arrange(desc(Group), Parent, TIME, desc(Quantile.50.)
 
 #------------------------------------------------
 # Pesticides
-pest_raw<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
-pest_wide<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_wide_20230317.xlsx")
-pest_comment <- read_excel("~/Projects/S-PRESTO/input/chemical/pest_adjusted_CRE.xlsx")
+pest_raw<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_long_20230317.xlsx")
+pest_wide<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Pesticides_wide_20230317.xlsx")
+pest_comment <- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/chemical/pest_adjusted_CRE.xlsx")
 
 
 pest<- pest_raw %>% 

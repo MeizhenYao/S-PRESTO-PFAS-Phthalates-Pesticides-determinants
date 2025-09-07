@@ -17,7 +17,7 @@ library(blme)
 library(glmnet)
 library(ggh4x)
 #------------------------------------------------------------import dataset
-figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/pest_model2.csv")
+figure4_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/pest_model2.csv")
 
 #------------------------------------------------------------reformat variables
 figure4_data$PEST<- factor(figure4_data$PEST,
@@ -34,7 +34,15 @@ figure4_data$term<- factor(figure4_data$term,
                                       "Plastic_boxesYes",
                                       "mca_dim1_catHigh-tendency-outside",
                                       "mca_dim2_catHigh-tendency-packaging"
-                           ))
+                           ),
+                           labels = c('Total Fish Intake',
+                                      'Fast Food Intake',
+                                      'Fruit Intake',
+                                      'Total Vegetable Intake',
+                                      'Styrofoam food container use: yes vs. no',
+                                      'Plastic food container use: yes vs. no',
+                                      'Eat out: high vs. low tendency',
+                                      'Consume packaged food: high vs. low tendency'))
 
 figure4_data$covariates<- factor(figure4_data$term)
 
@@ -51,14 +59,6 @@ figure4_data$conf.high<- as.numeric(figure4_data$conf.high)
 figure4_2<- ggplot(figure4_data,aes(y=term)) +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
   geom_point(size=1.8,aes(x=Estimate)) +
-  scale_y_discrete(labels = c("TotalFish_sc" = bquote('Total Fish'~Intake^a),
-                              "Fast_food_sc"= bquote('Fast Food'~Intake^a),
-                              "fruit_sc" = bquote('Fruit'~Intake^a),
-                              "vegetable_sc" = bquote('Total Vegetable'~Intake^a),
-                              "Styrofoam_boxesYes" = bquote('Styrofoam food container use: yes vs.'~no^a),
-                              "Plastic_boxesYes" = bquote('Plastic food container use: yes vs.'~no^a),
-                              "mca_dim1_catHigh-tendency-outside" = bquote('Eat out: high vs. low'~tendency^a),
-                              "mca_dim2_catHigh-tendency-packaging" = bquote('Consume packaged food: high vs. low'~tendency^a)))+ 
   geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
   scale_color_manual(drop = FALSE,
                      values = c("#C52A20", "#8E549E"),
@@ -79,7 +79,7 @@ figure4_2<- ggplot(figure4_data,aes(y=term)) +
         strip.text.y = element_blank())    
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure8.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/supp_figure4.jpeg",
      units="in", width=22, height=10, res=600)
 
 

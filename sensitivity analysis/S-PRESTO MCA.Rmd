@@ -57,12 +57,13 @@ library(poLCA)
 library(tidyverse)
 library("FactoMineR")
 library("factoextra")
+library(ggpubr)
 
 
 #-------------------------------------------------------import data set
-whole_cohort<-  read_csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/input/for paper/whole_cohort_20230316.csv")
+whole_cohort<-  read_csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/whole_cohort_20230316.csv")
 
-FFQ<- read_csv("~/Projects/S-PRESTO/input/for paper/chemical_paper/FFQ.csv")
+FFQ<- read_csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/FFQ.csv")
 
 
 #-------------------------------------------------------data preparation
@@ -128,15 +129,15 @@ whole_cohort<- whole_cohort %>%
 
 whole_cohort$GQ1_Place_BF_new_v4<- factor(whole_cohort$GQ1_Place_BF_new_v4,
                                        levels = 1:3,
-                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+                                       labels = c("Eat at home", "Eat outside", "Packed from home/ Take out from outside"))
 
 whole_cohort$GQ2_Place_Lunch_new_v4<- factor(whole_cohort$GQ2_Place_Lunch_new_v4,
                                        levels = 1:3,
-                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+                                       labels = c("Eat at home", "Eat outside", "Packed from home/ Take out from outside"))
 
 whole_cohort$GQ3_Place_Dinner_new_v4<- factor(whole_cohort$GQ3_Place_Dinner_new_v4,
                                        levels = 1:3,
-                                       labels = c("Eat at home", "Eat in outside", "Packed from home/ Take out from outside"))
+                                       labels = c("Eat at home", "Eat outside", "Packed from home/ Take out from outside"))
 
 
 
@@ -158,6 +159,11 @@ colnames(urine)[which(names(urine) == "GQ2_Place_Lunch_new_v4")] <- "Lunch"
 colnames(urine)[which(names(urine) == "GQ3_Place_Dinner_new_v4")] <- "Dinner"
 
 ```
+
+
+
+
+
 
 
 ```{r}
@@ -233,18 +239,18 @@ var$coord[,c(1,2)]
 var$contrib[,c(1,2)]
 
 table_wide<- data.frame(label = c("Breakfast: Eat at home",                                  
-                             "Breakfast: Eat in outside",                              
+                             "Breakfast: Eat outside",                              
                              "Breakfast: Packed from home/ Take out from outside",  
                              "Lunch: Eat at home",                                     
-                             "Lunch: Eat in outside",                                  
+                             "Lunch: Eat outside",                                  
                              "Lunch: Packed from home/ Take out from outside",           
                              "Dinner: Eat at home",                                      
-                             "Dinner: Eat in outside",                                  
+                             "Dinner: Eat outside",                                  
                              "Dinner: Packed from home/ Take out from outside"),
                         dim1_contribution = round(var$contrib[, 1], 2),
                         dim1_coordinates = round(var$coord[, 1], 2),
                         dim2_contribution = round(var$contrib[, 2], 2),
-                        dim2_coordinates = round(var$coord[, 1], 2)) %>% 
+                        dim2_coordinates = round(var$coord[, 2], 2)) %>% 
              arrange(desc(dim1_contribution)) 
 
 table_wide$label <- factor(table_wide$label, levels=(table_wide$label))
@@ -262,10 +268,10 @@ tbl<- ggplot(table, aes(x=parameter, y=label))  +
       geom_text(label=table$value, fontface = "bold",size = 8) + 
       xlab("") + 
       ylab("") + 
-      scale_x_discrete(labels = c("dim1_contribution" = "dim1\ncontribution", 
-                                  "dim1_coordinates" = "dim1\ncontribution", 
-                                  "dim2_contribution" = "dim1\ncontribution", 
-                                  "dim2_coordinates" = "dim1\ncontribution")) +
+      scale_x_discrete(labels = c("dim1_contribution" = "Dim1\ncontribution", 
+                                  "dim1_coordinates" = "Dim1\ncoordinates", 
+                                  "dim2_contribution" = "Dim2\ncontribution", 
+                                  "dim2_coordinates" = "Dim2\ncoordinates")) +
       scale_y_discrete(limits=rev) + 
       theme_bw() +
       #Remove axis line, ticks and axis label to get the look of a table
@@ -279,15 +285,17 @@ tbl<- ggplot(table, aes(x=parameter, y=label))  +
 
 plot<- fviz_mca_var(res.mca,
                     labelsize =7,
+                    pointsize =5,
              col.var = "contrib",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              repel = TRUE,
              ggtheme= theme_minimal()) +
-       theme_bw()+
-       theme(title = element_blank(),
+       theme_bw()+ 
+       labs(colour = "Contribution") +
+       theme(plot.title = element_blank(),
              text = element_text(size=20,face = "bold"))
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure4.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure4.jpeg",
      units="in", width=22, height=16, res=600)
 
 fp<- ggarrange(tbl, plot,
@@ -295,7 +303,7 @@ fp<- ggarrange(tbl, plot,
 
 fp<- annotate_figure(fp, 
                 top = text_grob("", color = "red", face = "bold", size = 17),
-                fig.lab = "(B) Contribution and Coordinates of Variable Categories to the Dimensions", 
+                fig.lab = "(B) Contribution and Coordinates of Variable Categories to the First Two Dimensions", 
                 fig.lab.pos = c("top.left"),
                 fig.lab.face = "bold",
                 fig.lab.size = 20)
@@ -339,7 +347,8 @@ mca_dim2<- ind$coord[,2]
 FFQ$mca_dim1<- mca_dim1
 FFQ$mca_dim2<- mca_dim2
 
-
+# cor(PFAS_log$mca_dim1, PFAS_log$Fast_food_sc)
+# cor(PFAS_log$mca_dim2, PFAS_log$Fast_food_sc)
 ```
 
 

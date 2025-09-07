@@ -63,9 +63,35 @@ library(rmarkdown)
 library(officer)
 library(scales)
 library(lme4)
+library(EnvStats)
 
 # import data (change the path to the location where you save the dataset)
-Phthalates<- read_excel("~/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_dHOD_20230703.xlsx")
+
+Phthalates<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_20230317.xlsx")
+
+# Phthalates_dHOD<- read_excel("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/input/for paper/chemical_paper/prepared_Phthalates_long_dHOD_20230703.xlsx")
+
+
+
+rosnerTest(Phthalates$adjusted_MEP, k=10)
+rosnerTest(Phthalates$adjusted_MCPP, k=10)
+rosnerTest(Phthalates$adjusted_MBZP, k=10)
+rosnerTest(Phthalates$adjusted_MBP, k=10)
+
+rosnerTest(Phthalates$adjusted_MIBP, k=10)
+rosnerTest(Phthalates$adjusted_MEHP, k=10)
+rosnerTest(Phthalates$adjusted_MEOHP, k=10)
+rosnerTest(Phthalates$adjusted_MEHHP, k=10)
+
+rosnerTest(Phthalates$adjusted_MECPP, k=10)
+rosnerTest(Phthalates$adjusted_MCIOP, k=10)
+rosnerTest(Phthalates$adjusted_MCINP, k=10)
+rosnerTest(Phthalates$adjusted_MEOHTP, k=10)
+
+
+rosnerTest(Phthalates$adjusted_MEHHTP, k=10)
+rosnerTest(Phthalates$adjusted_MECPTP, k=10)
+
 
 ## log transformation
 phtha_log <- Phthalates %>% 
@@ -91,6 +117,29 @@ phtha_log <- Phthalates %>%
             vegetable_SF_sc = (vegetable_SF - mean(vegetable_SF))/sd(vegetable_SF),
             Styrofoam_boxes_freq_mean_sc = (Styrofoam_boxes_freq_mean - mean(Styrofoam_boxes_freq_mean))/sd(Styrofoam_boxes_freq_mean),
             Plastic_boxes_freq_mean_sc = (Plastic_boxes_freq_mean - mean(Plastic_boxes_freq_mean))/sd(Plastic_boxes_freq_mean))
+
+
+rosnerTest(phtha_log$adjusted_MEP_log, k=10)
+rosnerTest(phtha_log$adjusted_MCPP_log, k=10)
+rosnerTest(phtha_log$adjusted_MBZP_log, k=10)
+rosnerTest(phtha_log$adjusted_MBP_log, k=10)
+
+rosnerTest(phtha_log$adjusted_MIBP_log, k=10)
+rosnerTest(phtha_log$adjusted_MEHP_log, k=10)
+rosnerTest(phtha_log$adjusted_MEOHP_log, k=10)
+rosnerTest(phtha_log$adjusted_MEHHP_log, k=10)
+
+rosnerTest(phtha_log$adjusted_MECPP_log, k=10)
+rosnerTest(phtha_log$adjusted_MCIOP_log, k=10)
+rosnerTest(phtha_log$adjusted_MCINP_log, k=10)
+rosnerTest(phtha_log$adjusted_MEOHTP_log, k=10)
+
+
+rosnerTest(phtha_log$adjusted_MEHHTP_log, k=10)
+rosnerTest(phtha_log$adjusted_MECPTP_log, k=10)
+
+
+
 
 
 ### covariates

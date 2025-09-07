@@ -19,7 +19,7 @@ library(ggh4x)
 library(grid)
 library(officer)
 #------------------------------------------------------------import dataset
-figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model1.csv")
+figure3_data<-  read.csv("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/plot_data_input/phtha_model1.csv")
 
 #------------------------------------------------------------reformat variables
 figure3_data$phtha_parent<- factor(figure3_data$phtha_parent,
@@ -69,7 +69,17 @@ figure3_data$term<- factor(figure3_data$term,
                                       "occupationHealth care worker",
                                       "occupationOffice worker",
                                       "pcv1_parity_recat>= 1"
-                           ))
+                           ),
+                           labels = c('Indian/Malay vs.Chinese',
+                                      'above 31 years vs. below 29 years',
+                                      '29 - 31 years vs. below 29 years',
+                                      'Primary/Secondary/Post_secondary vs. University',
+                                      '$11,294 and above vs. $6,376 and below',
+                                      '$6,377 - $11,293 vs.$6,376 and below',
+                                      'Service worker vs. Not working',
+                                      'Health care worker vs. Not working',
+                                      'Office worker vs. Not working',
+                                      'Multiparous vs. Nulliparous'))
 
 figure3_data$Group<- factor(figure3_data$phtha_group,
                             levels = c("LMWPs", "HMWPs"))
@@ -81,16 +91,6 @@ figure3_data$conf.high<- as.numeric(figure3_data$conf.high)
 figure3_1<- ggplot(figure3_data,aes(y=term)) +
             geom_errorbar(aes(xmin = conf.low, xmax = conf.high, color = Group), width=0.1,size=1)+
             geom_point(size=1.8,aes(x=Estimate)) +
-            scale_y_discrete(labels = c("ethnicity_specified_recatIndian/Malay" = bquote('Indian/Malay vs.'~Chinese^a),
-                                        "age_at_recruitment_catAge third tertile" = bquote('above 31 years vs. below 29 years'~years^a),
-                                        "age_at_recruitment_catAge second tertile" = bquote('(29 - 31) years vs. below 29'~years^a),
-                                        "pcv1_highest_education_completed_recatPrimary/Secondary/Post_secondary" = bquote('Primary/Secondary/Post_secondary vs.'~University^a),
-                                        "pcv1_household_income_recat$11,294 and above" = bquote('$11,294 and above vs.$6,376 and'~below^a),
-                                        "pcv1_household_income_recat$6,377 - $11,293" = bquote('$6,377 - $11,293 vs.$6,376 and'~below^a),
-                                        "occupationService worker" = bquote('Service worker vs. Not'~working^a),
-                                        "occupationHealth care worker" = bquote('Health care worker vs. Not'~working^a),
-                                        "occupationOffice worker" = bquote('Office worker vs. Not'~working^a),
-                                        "pcv1_parity_recat>= 1" = bquote('Multiparous vs.'~Nulliparous^b)))+
             geom_vline(aes(xintercept=0),linetype="dashed",size=0.3)+ 
             scale_color_manual(drop = FALSE,
                               values = c( "#E3882F", "#1B7C3D"),
@@ -111,7 +111,7 @@ figure3_1<- ggplot(figure3_data,aes(y=term)) +
                   strip.text.y = element_blank())   
 
 
-jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Documents/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure5.jpeg",
+jpeg("C:/Users/yaom03/OneDrive - The Mount Sinai Hospital/Projects/S-PRESTO/code/R/chemical & covariates/paper plot/figure6.jpeg",
      units="in", width=22, height=10, res=600)
 
 
